@@ -12,22 +12,21 @@ const tileMap = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
-const assetSlugs = ["g1"];
+const assetSlugs = ["g1", "b1"];
 
 const loadAssets = async (assetList) => {
   // loading images is asynchoronous so promise map
   const assets = await Promise.all(
     assetList.map((name) => {
       const img = new Image(tileSize, tileSize);
-      // assets.push(img);
       return new Promise(
         (ret) => (img.onload = ret),
         (img.src = `/static/${name}.png`)
-      ).then((res) => res);
+      ).then((res) => res.target);
     })
   );
 
-  return assets.map((a) => a.target);
+  return assets;
 };
 
 const insertGame = async (target) => {
@@ -37,7 +36,7 @@ const insertGame = async (target) => {
   // render tile map
   for (y = 0; y < mapY; y++) {
     for (x = 0; x < mapX; x++) {
-      ctx.drawImage(assets[0], tileSize * x, tileSize * y);
+      ctx.drawImage(assets[1], tileSize * x, tileSize * y);
     }
   }
 };
