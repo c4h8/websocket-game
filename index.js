@@ -15,7 +15,6 @@ const PORT = process.env.PORT || 4000;
 // app.use(morgan("tiny")) // middleware for logging
 app.use(express.urlencoded({ extended: true })); //middleware for parsing urlencoded data
 app.use(express.json()); // middleware for parsing incoming json
-app.use("/static", express.static("static")); // to set a folder for static file serving
 /////////////////////////////////////
 
 // Server Listener

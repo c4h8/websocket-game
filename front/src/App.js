@@ -1,10 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import attachGame from "./Game/attachGame";
 import "./App.css";
 
 function App() {
-  useEffect(() => {}, []);
+  const canvasRef = useRef(null);
 
-  return <div className="App"></div>;
+  useEffect(() => {
+    // TODO: set up socket connection
+    // TODO: mount game to canvas
+    attachGame(canvasRef);
+  }, []);
+
+  return (
+    <div className="App">
+      <canvas id="game" ref={canvasRef} />
+    </div>
+  );
 }
 
 export default App;
