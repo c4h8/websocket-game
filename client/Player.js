@@ -2,7 +2,7 @@ class Player {
   constructor({ position, velocity }) {
     this.position = position;
     this.velocity = velocity;
-    this.radius = 18;
+    this.radius = 19;
   }
 
   draw(c) {

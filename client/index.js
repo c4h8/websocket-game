@@ -2,9 +2,11 @@
 /* eslint-disable no-restricted-globals */
 import Boundary from './Boundary';
 import Player from './Player';
+import Coin from './Coin';
 
 const canvas = document.querySelector('canvas');
 const c = canvas.getContext('2d');
+const scoreSpan = document.querySelector('#score');
 
 canvas.width = innerWidth;
 canvas.height = innerHeight;
@@ -36,20 +38,22 @@ const keys = {
 };
 
 let lastKey = '';
+let score = 0;
 
+const coins = [];
 const boundaries = [];
 
 const map = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1],
+  [1, 0, 1, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1],
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ];
 
@@ -61,6 +65,16 @@ map.forEach((row, i) => row.forEach((symbol, j) => {
           position: {
             x: Boundary.width * j,
             y: Boundary.height * i,
+          },
+        }),
+      );
+      break;
+    case 2:
+      coins.push(
+        new Coin({
+          position: {
+            x: Boundary.width * j + Boundary.width / 2,
+            y: Boundary.height * i + Boundary.height / 2,
           },
         }),
       );
@@ -171,6 +185,21 @@ function animate() {
     }
   }
 
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const coin = coins[i];
+    coin.draw(c);
+
+    if (Math.hypot(
+      coin.position.x - localPlayer.position.x,
+      coin.position.y - localPlayer.position.y,
+    ) < coin.radius + localPlayer.radius
+    ) {
+      coins.splice(i, 1);
+      score += 1;
+      scoreSpan.innerHTML = score;
+    }
+  }
+
   boundaries.forEach((boundary) => {
     boundary.draw(c);
     if (playerCollidesWithBoundary({ player: localPlayer, boundary })) {
@@ -179,8 +208,6 @@ function animate() {
     }
   });
   localPlayer.update(c);
-  // player.velocity.x = 0;
-  // player.velocity.y = 0;
 }
 
 animate();
