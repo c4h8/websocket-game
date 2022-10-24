@@ -1,21 +1,12 @@
-// require("dotenv").config()
+const io = require('socket.io')(4000, {
+  cors: {
+    origin: ['http://localhost:8080'],
+  },
+});
 
-// import express and morgan
-const express = require("express");
-// const morgan = require("morgan")
-
-// create an application object
-const app = express();
-
-// define a PORT variable from the environment with a default value
-const PORT = process.env.PORT || 4000;
-
-/////////////////////////////////////
-// ALL YOUR MIDDLEWARE AND ROUTES GO HERE
-// app.use(morgan("tiny")) // middleware for logging
-app.use(express.urlencoded({ extended: true })); //middleware for parsing urlencoded data
-app.use(express.json()); // middleware for parsing incoming json
-/////////////////////////////////////
-
-// Server Listener
-app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
+io.on('connection', (socket) => {
+  console.log(socket.id);
+  socket.on('send-player-info', (player) => {
+    socket.broadcast.emit('receive-player-info', player);
+  });
+});

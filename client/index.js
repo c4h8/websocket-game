@@ -1,12 +1,17 @@
 /* eslint-disable no-plusplus */
 /* eslint-disable no-restricted-globals */
+import { io } from 'socket.io-client';
+
 import Boundary from './Boundary';
 import Player from './Player';
 import Coin from './Coin';
 
+const socket = io('http://localhost:4000');
+
 const canvas = document.querySelector('canvas');
 const c = canvas.getContext('2d');
 const scoreSpan = document.querySelector('#score');
+const anotherPlayerSpan = document.querySelector('#another_player');
 
 canvas.width = innerWidth;
 canvas.height = innerHeight;
@@ -21,6 +26,19 @@ const localPlayer = new Player({
     y: 0,
   },
 });
+
+const anotherPlayer = new Player({
+  position: {
+    x: 1.5 * Boundary.width,
+    y: 1.5 * Boundary.height,
+  },
+  velocity: {
+    x: 0,
+    y: 0,
+  },
+});
+
+const players = [localPlayer, anotherPlayer];
 
 const keys = {
   w: {
@@ -38,7 +56,6 @@ const keys = {
 };
 
 let lastKey = '';
-let score = 0;
 
 const coins = [];
 const boundaries = [];
@@ -84,7 +101,7 @@ map.forEach((row, i) => row.forEach((symbol, j) => {
   }
 }));
 
-const v = 2;
+const v = 5;
 
 function playerCollidesWithBoundary({
   player,
@@ -99,9 +116,16 @@ function playerCollidesWithBoundary({
   );
 }
 
+const fps = 60;
+
 function animate() {
-  requestAnimationFrame(animate);
   c.clearRect(0, 0, canvas.width, canvas.height);
+
+  socket.on('receive-player-info', player => {
+    anotherPlayerSpan.innerHTML = `(${player.position.x}, ${player.position.y})`;
+    anotherPlayer.position.x = player.position.x;
+    anotherPlayer.position.y = player.position.y;
+  });
 
   if (keys.w.pressed && lastKey === 'w') {
     for (let i = 0; i < boundaries.length; i++) {
@@ -195,8 +219,8 @@ function animate() {
     ) < coin.radius + localPlayer.radius
     ) {
       coins.splice(i, 1);
-      score += 1;
-      scoreSpan.innerHTML = score;
+      localPlayer.score += 1;
+      scoreSpan.innerHTML = localPlayer.score;
     }
   }
 
@@ -207,7 +231,15 @@ function animate() {
       localPlayer.velocity.y = 0;
     }
   });
+
   localPlayer.update(c);
+  anotherPlayer.draw(c);
+
+  socket.emit('send-player-info', { position: localPlayer.position, velocity: localPlayer.velocity });
+
+  setTimeout(() => {
+    requestAnimationFrame(animate);
+  }, 1000 / fps);
 }
 
 animate();
