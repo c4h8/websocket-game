@@ -1,6 +1,12 @@
+import Boundary from './Boundary';
+
 class Coin {
-  constructor({ position }) {
-    this.position = position;
+  constructor({ gridPosition }) {
+    this.gridPosition = gridPosition;
+    this.position = {
+      x: Boundary.width * gridPosition.x + Boundary.width / 2,
+      y: Boundary.height * gridPosition.y + Boundary.height / 2,
+    },
     this.radius = 5;
   }
 

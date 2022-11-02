@@ -1,6 +1,11 @@
+import Boundary from './Boundary';
+
 class Player {
-  constructor({ position, color, id }) {
-    this.position = position;
+  constructor({ startingPosition, color, id }) {
+    this.position = {
+      x: Boundary.width * startingPosition.x + Boundary.width / 2,
+      y: Boundary.height * startingPosition.y + Boundary.height / 2,
+    };
     this.velocity = { x: 0, y: 0};
     this.color = color;
     this.id = id;

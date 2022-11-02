@@ -5,17 +5,40 @@ const io = require('socket.io')(4000, {
 });
 
 const Player = require('./models/Player');
+const Coin = require('./models/Coin');
 
 let players = [];
+
 let startingPositions = [
-  { x: 60, y: 60 },
-  { x: 60, y: 380 },
-  { x: 700, y: 60 },
-  { x: 700, y: 380 }];
-let colors = ['red', 'yellow', 'blue', 'orange'];
+  { x: 1, y: 1 },
+  { x: 1, y: 9 },
+  { x: 17, y: 1 },
+  { x: 17, y: 9 },
+  { x: 9, y: 1 },
+  { x: 9, y: 9 },
+  { x: 5, y: 5 },
+  { x: 12, y: 5 },
+  { x: 3, y: 3 },
+  { x: 15, y: 3 }];
+
+let colors = ['red', 'yellow', 'aqua', 'silver', 'orange', 'fuchsia', 'white', 'beige', 'lightsteelblue', 'olive'];
+
+const map = [
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1],
+  [1, 0, 1, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1],
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+];
 
 io.on('connection', (socket) => {
-  console.log('CONNECTED');
+  console.log('CLIENT CONNECTED');
 
   const thisPlayer = new Player({
     position: startingPositions[0],
@@ -23,11 +46,11 @@ io.on('connection', (socket) => {
     id: socket.id,
   });
 
-  if (players.length < 4) {
+  if (players.length < 10) {
     colors = colors.filter((c) => c !== colors[0]);
     startingPositions = startingPositions.filter((p) => p !== startingPositions[0]);
 
-    socket.emit('create-player', thisPlayer);
+    socket.emit('create-game', { player: thisPlayer, map });
 
     players.forEach((p) => socket.emit('add-player', p));
 
@@ -35,12 +58,37 @@ io.on('connection', (socket) => {
 
     socket.broadcast.emit('add-player', thisPlayer);
   } else {
-    socket.emit('spectate');
+    socket.emit('spectate', map);
     players.forEach((p) => socket.emit('add-player', p));
   }
 
-  socket.on('send-update-player', (player) => {
-    socket.broadcast.emit('update-player', player);
+  socket.on('send-update-player-position', (player) => {
+    socket.broadcast.emit('update-player-position', player);
+  });
+
+  socket.on('send-update-player-score', (removedCoin) => {
+    const player = players.find((p) => p.id === socket.id);
+    player.score += 1;
+    const newCoinPossibleLocations = map.map(
+      (row, rowIndex) => row.map((number, column) => ({ x: column, y: rowIndex, number })),
+    )
+      .flat()
+      .filter((element) => element.number === 0);
+
+    const newCoinLocationIndex = Math.floor(Math.random() * newCoinPossibleLocations.length);
+
+    map[removedCoin.gridPosition.y][removedCoin.gridPosition.x] = 0;
+
+    const newCoin = new Coin({
+      gridPosition: {
+        x: newCoinPossibleLocations[newCoinLocationIndex].x,
+        y: newCoinPossibleLocations[newCoinLocationIndex].y,
+      },
+    });
+
+    map[newCoin.gridPosition.y][newCoin.gridPosition.x] = 2;
+
+    io.emit('update-player-score-and-map', { player, removedCoin, newCoin });
   });
 
   socket.on('disconnect', () => {
@@ -53,6 +101,6 @@ io.on('connection', (socket) => {
 
       socket.broadcast.emit('delete-player', player);
     }
-    console.log('CONNECTION CLOSED');
+    console.log('CLIENT CONNECTION CLOSED');
   });
 });
