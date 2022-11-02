@@ -11,34 +11,10 @@ const socket = io('http://localhost:4000');
 const canvas = document.querySelector('canvas');
 const c = canvas.getContext('2d');
 const scoreSpan = document.querySelector('#score');
-const anotherPlayerSpan = document.querySelector('#another_player');
+const header = document.querySelector('#header');
 
 canvas.width = innerWidth;
 canvas.height = innerHeight;
-
-const localPlayer = new Player({
-  position: {
-    x: 1.5 * Boundary.width,
-    y: 1.5 * Boundary.height,
-  },
-  velocity: {
-    x: 0,
-    y: 0,
-  },
-});
-
-const anotherPlayer = new Player({
-  position: {
-    x: 1.5 * Boundary.width,
-    y: 1.5 * Boundary.height,
-  },
-  velocity: {
-    x: 0,
-    y: 0,
-  },
-});
-
-const players = [localPlayer, anotherPlayer];
 
 const keys = {
   w: {
@@ -116,16 +92,49 @@ function playerCollidesWithBoundary({
   );
 }
 
+let players = [];
+
+socket.on('create-player', player => {
+  console.log(player);
+  const localPlayer = new Player({
+    position: player.position,
+    color: player.color,
+    id: player.id,
+  });
+
+  animate(localPlayer);
+});
+
+socket.on('spectate', () => {
+  header.innerHTML = 'Spectating';
+  spectate();
+});
+
+socket.on('add-player', player => {
+  const newPlayer = new Player({
+    position: player.position,
+    color: player.color,
+    id: player.id,
+  });
+
+  players = [newPlayer, ...players];
+});
+
+socket.on('update-player', player => {
+  const specificPlayer = players.find((p) => p.id === player.id);
+
+  specificPlayer.position.x = player.position.x;
+  specificPlayer.position.y = player.position.y;
+});
+
+socket.on('delete-player', player => {
+  players = players.filter((p) => p.id !== player.id);
+});
+
 const fps = 60;
 
-function animate() {
+function animate(localPlayer) {
   c.clearRect(0, 0, canvas.width, canvas.height);
-
-  socket.on('receive-player-info', player => {
-    anotherPlayerSpan.innerHTML = `(${player.position.x}, ${player.position.y})`;
-    anotherPlayer.position.x = player.position.x;
-    anotherPlayer.position.y = player.position.y;
-  });
 
   if (keys.w.pressed && lastKey === 'w') {
     for (let i = 0; i < boundaries.length; i++) {
@@ -220,7 +229,7 @@ function animate() {
     ) {
       coins.splice(i, 1);
       localPlayer.score += 1;
-      scoreSpan.innerHTML = localPlayer.score;
+      scoreSpan.innerHTML = `Score: ${localPlayer.score}`;
     }
   }
 
@@ -231,18 +240,31 @@ function animate() {
       localPlayer.velocity.y = 0;
     }
   });
+  
+  players.forEach((p) => p.draw(c));
 
   localPlayer.update(c);
-  anotherPlayer.draw(c);
 
-  socket.emit('send-player-info', { position: localPlayer.position, velocity: localPlayer.velocity });
+  socket.emit('send-update-player', { position: localPlayer.position, velocity: localPlayer.velocity, id: localPlayer.id });
 
   setTimeout(() => {
-    requestAnimationFrame(animate);
+    requestAnimationFrame(() => animate(localPlayer));
   }, 1000 / fps);
 }
 
-animate();
+function spectate() {
+  c.clearRect(0, 0, canvas.width, canvas.height);
+
+  boundaries.forEach((boundary) => {
+    boundary.draw(c);
+  });
+  
+  players.forEach((p) => p.draw(c));
+
+  setTimeout(() => {
+    requestAnimationFrame(spectate);
+  }, 1000 / fps);
+}
 
 window.addEventListener('keydown', ({ key }) => {
   switch (key) {

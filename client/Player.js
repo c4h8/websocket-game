@@ -1,7 +1,9 @@
 class Player {
-  constructor({ position, velocity }) {
+  constructor({ position, color, id }) {
     this.position = position;
-    this.velocity = velocity;
+    this.velocity = { x: 0, y: 0};
+    this.color = color;
+    this.id = id;
     this.radius = 15;
     this.score = 0;
   }
@@ -10,7 +12,7 @@ class Player {
     c.beginPath();
     c.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
     // eslint-disable-next-line no-param-reassign
-    c.fillStyle = 'red';
+    c.fillStyle = this.color;
     c.fill();
     c.closePath();
   }
