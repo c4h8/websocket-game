@@ -3,7 +3,7 @@ export default {
     WS_PORT: '3000',
   },
   optimize: {
-    minify: false,
+    minify: true,
     bundle: true,
     target: 'es2018',
   },

@@ -11,13 +11,12 @@ app.use(express.static('build'));
 app.listen(process.env.PORT || '4000');
 
 console.log('cors', originList)
-const io = require('socket.io')(process.env.PORT || '3000', {
+console.log('cors', process.env.PORT)
+const io = require('socket.io')(process.env.PORT || '4000', {
   cors: {
     origin: originList,
-    methods: ["GET", "POST"],
   },
 });
-
 
 const Player = require('./models/Player');
 const Coin = require('./models/Coin');
