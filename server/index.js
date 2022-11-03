@@ -1,8 +1,15 @@
-const io = require('socket.io')(4000, {
+
+var express = require('express');
+var app = express();
+app.use('/static', express.static('build'));
+const io = require('socket.io')(app.listen(4000), {
   cors: {
-    origin: ['http://localhost:8080'],
+    origin: [`${window.location.hostname}:${process.env.WS_PORT || '8080'}`],
+    methods: ["GET", "POST"]
   },
 });
+
+
 
 const Player = require('./models/Player');
 const Coin = require('./models/Coin');
