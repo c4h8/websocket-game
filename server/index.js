@@ -17,7 +17,9 @@ const io = require('socket.io')(http, {
 });
 
 io.listen(http)
-
+http.listen(process.env.PORT, () => {
+  console.log('Server is running on port ', process.env.PORT);
+})
 const Player = require('./models/Player');
 const Coin = require('./models/Coin');
 
