@@ -1,22 +1,22 @@
 
 var express = require('express')
 var app = express();
+app.use(express.static('build'));
 var http = require('http').Server(app);
 
 const originList = process.env.RENDER_EXTERNAL_HOSTNAME
   ? [`${process.env?.RENDER_EXTERNAL_HOSTNAME}:${process.env.PORT}`]
   : ['http://localhost:8080']
 
-app.use(express.static('build'));
-app.listen(process.env.PORT || '4000');
-
 console.log('cors', originList)
 console.log('cors', process.env.PORT)
-const io = require('socket.io')(process.env.PORT || '4000', {
+const io = require('socket.io')(http, {
   cors: {
     origin: originList,
   },
 });
+
+io.listen(http)
 
 const Player = require('./models/Player');
 const Coin = require('./models/Coin');
