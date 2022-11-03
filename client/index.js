@@ -6,7 +6,7 @@ import Boundary from './Boundary';
 import Player from './Player';
 import Coin from './Coin';
 
-const socket = io(`${window.location.hostname}:${process.env.WS_PORT || '8080'}`);
+const socket = io(`${window.location.hostname}:3000`);
 
 const canvas = document.querySelector('canvas');
 const c = canvas.getContext('2d');

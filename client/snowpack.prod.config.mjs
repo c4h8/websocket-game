@@ -1,8 +1,10 @@
 export default {
-  env: {},
+  env: {
+    WS_PORT: '3000',
+  },
   optimize: {
     minify: false,
-    bundle: false,
+    bundle: true,
     target: 'es2018',
   },
   buildOptions: {

@@ -1,21 +1,28 @@
 
-var express = require('express');
+var express = require('express')
 var app = express();
-app.use('/static', express.static('build'));
-const io = require('socket.io')(app.listen(4000), {
+var http = require('http').Server(app);
+
+const originList = process.env.RENDER_EXTERNAL_HOSTNAME
+  ? [`${process.env?.RENDER_EXTERNAL_HOSTNAME}:8080`]
+  : ['http://localhost:8080']
+
+app.use(express.static('build'));
+app.listen(4000);
+
+console.log('cors', originList)
+const io = require('socket.io')(http.listen(3000), {
   cors: {
-    origin: [`${window.location.hostname}:${process.env.WS_PORT || '8080'}`],
-    methods: ["GET", "POST"]
+    origin: originList,
+    methods: ["GET", "POST"],
   },
 });
-
 
 
 const Player = require('./models/Player');
 const Coin = require('./models/Coin');
 
 let players = [];
-
 let startingPositions = [
   { x: 1, y: 1 },
   { x: 1, y: 9 },

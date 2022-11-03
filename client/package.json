@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "snowpack dev",
-    "build": "snowpack build"
+    "build": "snowpack build --config snowpack.prod.config.mjs"
   },
   "keywords": [],
   "author": "",
