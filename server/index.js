@@ -4,12 +4,14 @@ var app = express();
 app.use(express.static('build'));
 var http = require('http').Server(app);
 
+const port = process.env.PORT || '4000';
+
 const originList = process.env.RENDER_EXTERNAL_HOSTNAME
-  ? [`${process.env?.RENDER_EXTERNAL_HOSTNAME}:${process.env.PORT}`]
+  ? [`${process.env?.RENDER_EXTERNAL_HOSTNAME}:${port}`]
   : ['http://localhost:8080']
 
 console.log('cors', originList)
-console.log('cors', process.env.PORT)
+console.log('cors', port)
 const io = require('socket.io')(http, {
   cors: {
     origin: originList,
@@ -17,8 +19,8 @@ const io = require('socket.io')(http, {
 });
 
 io.listen(http)
-http.listen(process.env.PORT, () => {
-  console.log('Server is running on port ', process.env.PORT);
+http.listen(port, () => {
+  console.log('Server is running on port ', port);
 })
 const Player = require('./models/Player');
 const Coin = require('./models/Coin');

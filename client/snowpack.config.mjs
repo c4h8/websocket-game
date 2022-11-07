@@ -1,11 +1,10 @@
 export default {
-  env: {},
+  env: {
+    IS_PROD: false,
+  },
   optimize: {
     minify: false,
     bundle: false,
     target: 'es2018',
-  },
-  buildOptions: {
-    out: '../build',
   },
 };
