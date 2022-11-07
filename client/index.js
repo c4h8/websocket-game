@@ -58,7 +58,7 @@ socket.on('create-game', ({ player, map }) => {
   canvas.height = Boundary.height * map.length;
 
   localPlayer = new Player({
-    startingPosition: player.position,
+    startingPosition: player.startingPosition,
     color: player.color,
     id: player.id,
   });
@@ -78,11 +78,19 @@ socket.on('spectate', (map) => {
 });
 
 socket.on('add-player', player => {
+  socket.emit('send-update-player-position', {
+    position: localPlayer.position,
+    velocity: localPlayer.velocity,
+    id: localPlayer.id
+  });
+
   const newPlayer = new Player({
-    startingPosition: player.position,
+    startingPosition: player.startingPosition,
     color: player.color,
     id: player.id,
   });
+
+  newPlayer.velocity = player.velocity;
 
   const scoreElement = document.createElement('div');
   scoreElement.id = `${newPlayer.color}Player`;
@@ -131,7 +139,6 @@ socket.on('delete-player', player => {
 let disconnected = false;
 
 socket.on("disconnect", () => {
-  console.log(socket.connected);
   players.forEach(player => document.getElementById(`${player.color}Player`).remove());
   players = [];
   disconnected = true

@@ -58,7 +58,7 @@ io.on('connection', (socket) => {
   console.log('CLIENT CONNECTED');
 
   const thisPlayer = new Player({
-    position: startingPositions[0],
+    startingPosition: startingPositions[0],
     color: colors[0],
     id: socket.id,
   });
@@ -69,7 +69,9 @@ io.on('connection', (socket) => {
 
     socket.emit('create-game', { player: thisPlayer, map });
 
-    players.forEach((p) => socket.emit('add-player', p));
+    players.forEach((p) => {
+      socket.emit('add-player', p);
+    });
 
     players = [thisPlayer, ...players];
 
@@ -80,8 +82,10 @@ io.on('connection', (socket) => {
   }
 
   socket.on('send-update-player-position', (player) => {
-    console.log(player);
     socket.broadcast.emit('update-player-position', player);
+    const somePlayer = players.find((p) => p.id === socket.id);
+    somePlayer.position = player.position;
+    somePlayer.velocity = player.velocity;
   });
 
   socket.on('send-update-player-score', (removedCoin) => {

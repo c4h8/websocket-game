@@ -1,13 +1,18 @@
 class Player {
+  static size = 40;
+
   constructor({
-    position, color, id,
+    startingPosition, color, id,
   }) {
-    this.position = position;
+    this.position = {
+      x: this.size * startingPosition.x + this.size / 2,
+      y: this.size * startingPosition.y + this.size / 2,
+    };
     this.color = color;
     this.id = id;
-    this.velocity = 0;
+    this.velocity = { x: 0, y: 0 };
     this.score = 0;
-    this.startingPosition = position;
+    this.startingPosition = startingPosition;
   }
 }
 
