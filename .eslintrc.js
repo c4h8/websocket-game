@@ -6,10 +6,12 @@ module.exports = {
   },
   extends: 'airbnb-base',
   overrides: [
+    '**//'
   ],
   parserOptions: {
     ecmaVersion: 'latest',
   },
   rules: {
   },
+  "root": true
 };

@@ -2,11 +2,12 @@
 /* eslint-disable no-restricted-globals */
 import { io } from 'socket.io-client';
 
+
 import Boundary from './Boundary';
 import Player from './Player';
 import Coin from './Coin';
 
-const socket = io('http://localhost:4000');
+const socket = io(import.meta.env.IS_PROD ? `${window.location.hostname}` : 'http://localhost:4000');
 
 const canvas = document.querySelector('canvas');
 const c = canvas.getContext('2d');
