@@ -120,6 +120,17 @@ socket.on('delete-player', player => {
   document.getElementById(`${player.color}Player`).remove()
 });
 
+let disconnected = false;
+
+socket.on("disconnect", () => {
+  console.log(socket.connected);
+  players.forEach(player => document.getElementById(`${player.color}Player`).remove());
+  players = [];
+  disconnected = true
+  headerElement.innerHTML = 'Disconnected';
+  headerElement.style.color = 'white';
+});
+
 function createMap(map) {
   map.forEach((row, i) => row.forEach((symbol, j) => {
     switch (symbol) {
@@ -271,9 +282,11 @@ function animate(localPlayer) {
 
   socket.emit('send-update-player-position', { position: localPlayer.position, velocity: localPlayer.velocity, id: localPlayer.id });
 
-  setTimeout(() => {
-    requestAnimationFrame(() => animate(localPlayer));
-  }, 1000 / fps);
+  if (!disconnected) {
+    setTimeout(() => {
+      requestAnimationFrame(() => animate(localPlayer));
+    }, 1000 / fps);
+  }
 }
 
 function spectate() {
