@@ -5,30 +5,47 @@
     <title>Pacman</title>
 </head>
 <style>
+    html {
+        display: table;
+        margin: auto;
+    }
     body {
-        margin: 00;
+        display: table-cell;
+        vertical-align: middle;
         background-color: black;
     }
     div {
         color: white;
         font-family: sans-serif;
         margin-bottom: 5px;
+        text-align: center;
     }
     h1 {
         color: white;
         font-family: sans-serif;
     }
+    canvas {
+        margin: auto;
+    }
+    .instructions {
+        color: white;
+        font-family: sans-serif;
+        margin-bottom: 20px;
+    }
 </style>
 <body>
-    <h1 id="header">
-        -
-    </h1>
-    <div id="scores">
-        <div id="score">
-            My score: 0
+    <div class="content">
+        <h1 id="header">
+            -
+        </h1>
+        <div class="instructions">Move around by pressing the keys W, A, S and D</div>
+        <canvas></canvas>
+        <div id="scores">
+            <div id="score">
+                My score: 0
+            </div>
         </div>
     </div>
-    <canvas></canvas>
     <script type="module" src="index.js"></script>
 </body>
 </html>

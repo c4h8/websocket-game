@@ -14,9 +14,6 @@ const scoresDivElement = document.querySelector('#scores');
 const scoreElement = document.querySelector('#score');
 const headerElement = document.querySelector('#header');
 
-canvas.width = innerWidth;
-canvas.height = innerHeight;
-
 const keys = {
   w: {
     pressed: false,
@@ -55,13 +52,16 @@ function playerCollidesWithBoundary({
 let players = [];
 
 socket.on('create-game', ({ player, map }) => {
+  canvas.width = Boundary.width * map[0].length;
+  canvas.height = Boundary.height * map.length;
+
   const localPlayer = new Player({
     startingPosition: player.position,
     color: player.color,
     id: player.id,
   });
 
-  headerElement.innerHTML = `You are ${localPlayer.color} circle`;
+  headerElement.innerHTML = `You are the ${localPlayer.color} circle`;
   headerElement.style.color = localPlayer.color;
   scoreElement.style.color = localPlayer.color;
 
