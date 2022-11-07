@@ -63,32 +63,36 @@ io.on('connection', (socket) => {
   }
 
   socket.on('send-update-player-position', (player) => {
+    console.log(player);
     socket.broadcast.emit('update-player-position', player);
   });
 
   socket.on('send-update-player-score', (removedCoin) => {
-    const player = players.find((p) => p.id === socket.id);
-    player.score += 1;
-    const newCoinPossibleLocations = map.map(
-      (row, rowIndex) => row.map((number, column) => ({ x: column, y: rowIndex, number })),
-    )
-      .flat()
-      .filter((element) => element.number === 0);
+    if (map[removedCoin.gridPosition.y][removedCoin.gridPosition.x] === 2) {
+      const newCoinPossibleLocations = map.map(
+        (row, rowIndex) => row.map((number, column) => ({ x: column, y: rowIndex, number })),
+      )
+        .flat()
+        .filter((element) => element.number === 0);
 
-    const newCoinLocationIndex = Math.floor(Math.random() * newCoinPossibleLocations.length);
+      const newCoinLocationIndex = Math.floor(Math.random() * newCoinPossibleLocations.length);
 
-    map[removedCoin.gridPosition.y][removedCoin.gridPosition.x] = 0;
+      const newCoin = new Coin({
+        gridPosition: {
+          x: newCoinPossibleLocations[newCoinLocationIndex].x,
+          y: newCoinPossibleLocations[newCoinLocationIndex].y,
+        },
+      });
 
-    const newCoin = new Coin({
-      gridPosition: {
-        x: newCoinPossibleLocations[newCoinLocationIndex].x,
-        y: newCoinPossibleLocations[newCoinLocationIndex].y,
-      },
-    });
+      map[removedCoin.gridPosition.y][removedCoin.gridPosition.x] = 0;
 
-    map[newCoin.gridPosition.y][newCoin.gridPosition.x] = 2;
+      const player = players.find((p) => p.id === socket.id);
+      player.score += 1;
 
-    io.emit('update-player-score-and-map', { player, removedCoin, newCoin });
+      map[newCoin.gridPosition.y][newCoin.gridPosition.x] = 2;
+
+      io.emit('update-player-score-and-map', { player, removedCoin, newCoin });
+    }
   });
 
   socket.on('disconnect', () => {

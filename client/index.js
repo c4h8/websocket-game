@@ -11,7 +11,7 @@ const socket = io('http://localhost:4000');
 const canvas = document.querySelector('canvas');
 const c = canvas.getContext('2d');
 const scoresDivElement = document.querySelector('#scores');
-const scoreElement = document.querySelector('#score');
+const myScoreElement = document.querySelector('#myScore');
 const headerElement = document.querySelector('#header');
 
 const keys = {
@@ -49,13 +49,14 @@ function playerCollidesWithBoundary({
   );
 }
 
+let localPlayer = null;
 let players = [];
 
 socket.on('create-game', ({ player, map }) => {
   canvas.width = Boundary.width * map[0].length;
   canvas.height = Boundary.height * map.length;
 
-  const localPlayer = new Player({
+  localPlayer = new Player({
     startingPosition: player.position,
     color: player.color,
     id: player.id,
@@ -63,7 +64,7 @@ socket.on('create-game', ({ player, map }) => {
 
   headerElement.innerHTML = `You are the ${localPlayer.color} circle`;
   headerElement.style.color = localPlayer.color;
-  scoreElement.style.color = localPlayer.color;
+  myScoreElement.style.color = localPlayer.color;
 
   createMap(map);
   animate(localPlayer);
@@ -97,6 +98,9 @@ socket.on('update-player-position', player => {
 
   anotherPlayer.position.x = player.position.x;
   anotherPlayer.position.y = player.position.y;
+
+  anotherPlayer.velocity.x = player.velocity.x;
+  anotherPlayer.velocity.y = player.velocity.y;
 });
 
 socket.on('update-player-score-and-map', ({ player, removedCoin, newCoin }) => {
@@ -108,7 +112,10 @@ socket.on('update-player-score-and-map', ({ player, removedCoin, newCoin }) => {
     y: newCoin.gridPosition.y,
   }})]
   const anotherPlayer = players.find((p) => p.id === player.id);
-  if (anotherPlayer) {
+  if (player.id === localPlayer.id) {
+    localPlayer.score = player.score;
+    myScoreElement.innerHTML = `My score: ${localPlayer.score}`;
+  } else if (anotherPlayer) {
     anotherPlayer.score = player.score;
     const scoreElement = document.getElementById(`${anotherPlayer.color}Player`);
     scoreElement.innerHTML = `${anotherPlayer.color} player score: ${anotherPlayer.score}`;
@@ -167,6 +174,7 @@ function animate(localPlayer) {
   c.clearRect(0, 0, canvas.width, canvas.height);
 
   if (keys.w.pressed && lastKey === 'w') {
+    const velocityBeforeUpdate = localPlayer.velocity.y;
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
       if (playerCollidesWithBoundary({
@@ -186,7 +194,15 @@ function animate(localPlayer) {
         localPlayer.velocity.y = -v;
       }
     }
+    if (localPlayer.velocity.y !== velocityBeforeUpdate) {
+      socket.emit('send-update-player-position', {
+        position: localPlayer.position,
+        velocity: localPlayer.velocity,
+        id: localPlayer.id
+      });
+    }
   } else if (keys.a.pressed && lastKey === 'a') {
+    const velocityBeforeUpdate = localPlayer.velocity.x;
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
       if (playerCollidesWithBoundary({
@@ -206,7 +222,15 @@ function animate(localPlayer) {
         localPlayer.velocity.x = -v;
       }
     }
+    if (localPlayer.velocity.x !== velocityBeforeUpdate) {
+      socket.emit('send-update-player-position', {
+        position: localPlayer.position,
+        velocity: localPlayer.velocity,
+        id: localPlayer.id
+      });
+    }
   } else if (keys.s.pressed && lastKey === 's') {
+    const velocityBeforeUpdate = localPlayer.velocity.y;
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
       if (playerCollidesWithBoundary({
@@ -226,7 +250,15 @@ function animate(localPlayer) {
         localPlayer.velocity.y = v;
       }
     }
+    if (localPlayer.velocity.y !== velocityBeforeUpdate) {
+      socket.emit('send-update-player-position', {
+        position: localPlayer.position,
+        velocity: localPlayer.velocity,
+        id: localPlayer.id
+      });
+    }
   } else if (keys.d.pressed && lastKey === 'd') {
+    const velocityBeforeUpdate = localPlayer.velocity.x;
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
       if (playerCollidesWithBoundary({
@@ -246,6 +278,13 @@ function animate(localPlayer) {
         localPlayer.velocity.x = v;
       }
     }
+    if (localPlayer.velocity.x !== velocityBeforeUpdate) {
+      socket.emit('send-update-player-position', {
+        position: localPlayer.position,
+        velocity: localPlayer.velocity,
+        id: localPlayer.id
+      });
+    }
   }
 
   for (let i = coins.length - 1; i >= 0; i--) {
@@ -262,9 +301,6 @@ function animate(localPlayer) {
         y: coin.gridPosition.y
       }});
       coins.splice(i, 1);
-      localPlayer.score += 1;
-      scoreElement.innerHTML = `My score: ${localPlayer.score}`;
-      scoreElement.style.color = localPlayer.color;
     }
   }
 
@@ -274,13 +310,17 @@ function animate(localPlayer) {
       localPlayer.velocity.x = 0;
       localPlayer.velocity.y = 0;
     }
+    players.forEach(player => {
+      if (playerCollidesWithBoundary({ player, boundary })) {
+        player.velocity.x = 0;
+        player.velocity.y = 0;
+      }
+    })
   });
   
-  players.forEach((p) => p.draw(c));
+  players.forEach((p) => p.update(c));
 
   localPlayer.update(c);
-
-  socket.emit('send-update-player-position', { position: localPlayer.position, velocity: localPlayer.velocity, id: localPlayer.id });
 
   if (!disconnected) {
     setTimeout(() => {
