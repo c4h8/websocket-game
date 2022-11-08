@@ -36,7 +36,14 @@ let startingPositions = [
   { x: 5, y: 5 },
   { x: 12, y: 5 },
   { x: 3, y: 3 },
-  { x: 15, y: 3 }];
+  { x: 15, y: 3 },
+  { x: 3, y: 7 },
+  { x: 15, y: 7 },
+  { x: 7, y: 3 },
+  { x: 13, y: 3 },
+  { x: 7, y: 7 },
+  { x: 13, y: 7 },
+];
 
 let colors = ['red', 'yellow', 'aqua', 'silver', 'orange', 'fuchsia', 'white', 'beige', 'lightsteelblue', 'olive'];
 
@@ -57,13 +64,13 @@ const map = [
 io.on('connection', (socket) => {
   console.log('CLIENT CONNECTED');
 
-  const thisPlayer = new Player({
-    startingPosition: startingPositions[0],
-    color: colors[0],
-    id: socket.id,
-  });
-
   if (players.length < 10) {
+    const thisPlayer = new Player({
+      startingPosition: startingPositions[0],
+      color: colors[0],
+      id: socket.id,
+    });
+
     colors = colors.filter((c) => c !== colors[0]);
     startingPositions = startingPositions.filter((p) => p !== startingPositions[0]);
 
@@ -84,8 +91,10 @@ io.on('connection', (socket) => {
   socket.on('send-update-player-position', (player) => {
     socket.broadcast.emit('update-player-position', player);
     const somePlayer = players.find((p) => p.id === socket.id);
-    somePlayer.position = player.position;
-    somePlayer.velocity = player.velocity;
+    if (somePlayer) {
+      somePlayer.position = player.position;
+      somePlayer.velocity = player.velocity;
+    }
   });
 
   socket.on('send-update-player-score', (removedCoin) => {

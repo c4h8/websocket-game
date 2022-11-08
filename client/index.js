@@ -72,17 +72,24 @@ socket.on('create-game', ({ player, map }) => {
 });
 
 socket.on('spectate', (map) => {
+  canvas.width = Boundary.width * map[0].length;
+  canvas.height = Boundary.height * map.length;
+
   headerElement.innerHTML = 'Spectating';
+  document.getElementById('instructions').remove();
+
   createMap(map);
   spectate();
 });
 
 socket.on('add-player', player => {
-  socket.emit('send-update-player-position', {
-    position: localPlayer.position,
-    velocity: localPlayer.velocity,
-    id: localPlayer.id
-  });
+  if (localPlayer) {
+    socket.emit('send-update-player-position', {
+      position: localPlayer.position,
+      velocity: localPlayer.velocity,
+      id: localPlayer.id
+    });
+  }
 
   const newPlayer = new Player({
     startingPosition: player.startingPosition,
@@ -105,11 +112,13 @@ socket.on('add-player', player => {
 socket.on('update-player-position', player => {
   const anotherPlayer = players.find((p) => p.id === player.id);
 
-  anotherPlayer.position.x = player.position.x;
-  anotherPlayer.position.y = player.position.y;
+  if (anotherPlayer) {
+    anotherPlayer.position.x = player.position.x;
+    anotherPlayer.position.y = player.position.y;
 
-  anotherPlayer.velocity.x = player.velocity.x;
-  anotherPlayer.velocity.y = player.velocity.y;
+    anotherPlayer.velocity.x = player.velocity.x;
+    anotherPlayer.velocity.y = player.velocity.y;
+  }
 });
 
 socket.on('update-player-score-and-map', ({ player, removedCoin, newCoin }) => {
@@ -121,7 +130,7 @@ socket.on('update-player-score-and-map', ({ player, removedCoin, newCoin }) => {
     y: newCoin.gridPosition.y,
   }})]
   const anotherPlayer = players.find((p) => p.id === player.id);
-  if (player.id === localPlayer.id) {
+  if (localPlayer && player.id === localPlayer.id) {
     localPlayer.score = player.score;
     myScoreElement.innerHTML = `My score: ${localPlayer.score}`;
   } else if (anotherPlayer) {
@@ -347,9 +356,15 @@ function spectate() {
 
   boundaries.forEach((boundary) => {
     boundary.draw(c);
+    players.forEach(player => {
+      if (playerCollidesWithBoundary({ player, boundary })) {
+        player.velocity.x = 0;
+        player.velocity.y = 0;
+      }
+    })
   });
   
-  players.forEach((p) => p.draw(c));
+  players.forEach((p) => p.update(c));
 
   setTimeout(() => {
     requestAnimationFrame(spectate);
