@@ -61,8 +61,9 @@ socket.on('create-game', ({ player, map }) => {
 
   localPlayer = new Player({
     startingPosition: player.startingPosition,
-    color: player.color,
+    color: 'red',
     id: player.id,
+    name: player.name,
   });
 
   headerElement.innerHTML = `You are the ${localPlayer.color} circle`;
@@ -95,16 +96,16 @@ socket.on('add-player', player => {
 
   const newPlayer = new Player({
     startingPosition: player.startingPosition,
-    color: player.color,
     id: player.id,
+    name: player.name,
   });
 
   newPlayer.velocity = player.velocity;
 
   const scoreElement = document.createElement('div');
-  scoreElement.id = `${newPlayer.color}Player`;
-  scoreElement.innerHTML = `${player.color} player score: ${player.score}`;
-  scoreElement.style.color = player.color;
+  scoreElement.id = newPlayer.name;
+  scoreElement.innerHTML = `${newPlayer.name} score: ${player.score}`;
+  scoreElement.style.color = newPlayer.color;
 
   scoresDivElement.appendChild(scoreElement);
 
@@ -137,14 +138,14 @@ socket.on('update-player-score-and-map', ({ player, removedCoin, newCoinGridPosi
     myScoreElement.innerHTML = `My score: ${localPlayer.score}`;
   } else if (anotherPlayer) {
     anotherPlayer.score = player.score;
-    const scoreElement = document.getElementById(`${anotherPlayer.color}Player`);
-    scoreElement.innerHTML = `${anotherPlayer.color} player score: ${anotherPlayer.score}`;
+    const scoreElement = document.getElementById(anotherPlayer.name);
+    scoreElement.innerHTML = `${anotherPlayer.name} score: ${anotherPlayer.score}`;
   }
 });
 
 socket.on('delete-player', player => {
   players = players.filter((p) => p.id !== player.id);
-  document.getElementById(`${player.color}Player`).remove()
+  document.getElementById(player.name).remove()
 });
 
 socket.on('remove-powerup', (newPowerUpGridPosition) => {
@@ -160,7 +161,7 @@ socket.on('add-powerup', (newPowerUpGridPosition) => {
 let disconnected = false;
 
 socket.on("disconnect", () => {
-  players.forEach(player => document.getElementById(`${player.color}Player`).remove());
+  players.forEach(player => document.getElementById(player.name).remove());
   players = [];
   disconnected = true
   headerElement.innerHTML = 'Disconnected';

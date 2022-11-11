@@ -17,7 +17,7 @@ const startingPositionsArray = [
   { x: 13, y: 7 },
 ];
 
-const mapArray = [
+const map = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
@@ -31,4 +31,16 @@ const mapArray = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ];
 
-module.exports = { startingPositionsArray, mapArray };
+const getRandomEmptyGridPosition = () => {
+  const emptyPositions = map.map(
+    (row, rowIndex) => row.map((number, column) => ({ x: column, y: rowIndex, number })),
+  )
+    .flat()
+    .filter((element) => element.number === 0);
+
+  const randomEmptyPositionIndex = Math.floor(Math.random() * emptyPositions.length)
+
+  return emptyPositions[randomEmptyPositionIndex]
+}
+
+module.exports = { startingPositionsArray, map, getRandomEmptyGridPosition };

@@ -5,8 +5,11 @@ app.use(express.static('build'));
 var http = require('http').Server(app);
 
 const Player = require('./models/Player');
-const Coin = require('./models/Coin');
-const { startingPositionsArray, mapArray } = require('./utils');
+const {
+  startingPositionsArray,
+  map,
+  getRandomEmptyGridPosition
+} = require('./utils');
 
 const port = process.env.PORT || '4000';
 
@@ -30,21 +33,6 @@ http.listen(port, () => {
 
 let players = [];
 let startingPositions = startingPositionsArray;
-const map = mapArray;
-
-let colors = ['red', 'yellow', 'aqua', 'silver', 'orange', 'fuchsia', 'white', 'beige', 'lightsteelblue', 'olive'];
-
-const getRandomEmptyGridPosition = () => {
-  const emptyPositions = map.map(
-    (row, rowIndex) => row.map((number, column) => ({ x: column, y: rowIndex, number })),
-  )
-    .flat()
-    .filter((element) => element.number === 0);
-
-  const randomEmptyPositionIndex = Math.floor(Math.random() * emptyPositions.length)
-
-  return emptyPositions[randomEmptyPositionIndex]
-}
 
 io.on('connection', (socket) => {
   console.log('CLIENT CONNECTED');
@@ -52,11 +40,9 @@ io.on('connection', (socket) => {
   if (players.length < 10) {
     const thisPlayer = new Player({
       startingPosition: startingPositions[0],
-      color: colors[0],
       id: socket.id,
     });
 
-    colors = colors.filter((c) => c !== colors[0]);
     startingPositions = startingPositions.filter((p) => p !== startingPositions[0]);
 
     socket.emit('create-game', { player: thisPlayer, map });
@@ -73,6 +59,9 @@ io.on('connection', (socket) => {
     players.forEach((p) => socket.emit('add-player', p));
   }
 
+
+  // One of the clients sends their position and velocity
+  // This information is broadcasted to all other clients
   socket.on('send-update-player-position', (player) => {
     socket.broadcast.emit('update-player-position', player);
     const somePlayer = players.find((p) => p.id === socket.id);
@@ -82,22 +71,28 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('send-update-powerup', (powerUp) => {
-    console.log(powerUp);
-    if (map[powerUp.gridPosition.y][powerUp.gridPosition.x] === 3) {
-      const newPowerUpPosition = getRandomEmptyGridPosition();
 
+  // One of the clients has collected a powerup
+  // Powerup is removed from the map
+  // New powerup position is emitted to all clients after 5 seconds
+  socket.on('send-update-powerup', (powerUp) => {
+    if (map[powerUp.gridPosition.y][powerUp.gridPosition.x] === 3) {
       map[powerUp.gridPosition.y][powerUp.gridPosition.x] = 0;
-      map[newPowerUpPosition.y][newPowerUpPosition.x] = 3;
 
       io.emit('remove-powerup');
 
       setTimeout(function() {
+        const newPowerUpPosition = getRandomEmptyGridPosition();
+        map[newPowerUpPosition.y][newPowerUpPosition.x] = 3;
         io.emit('add-powerup', newPowerUpPosition);
       }, 5000);
     }
   });
 
+
+  // One of the clients has collected a coin
+  // The score of the client is increased by one
+  // New coin position is emitted to all clients
   socket.on('send-update-player-score', (removedCoin) => {
     if (map[removedCoin.gridPosition.y][removedCoin.gridPosition.x] === 2) {
       const newCoinGridPosition = getRandomEmptyGridPosition();
@@ -113,10 +108,11 @@ io.on('connection', (socket) => {
     }
   });
 
+  // One of the clients has disconnected
+  // Remove the player and broadcast to all other clients
   socket.on('disconnect', () => {
     const player = players.find((p) => p.id === socket.id);
     if (player) {
-      colors = [player.color, ...colors];
       startingPositions = [player.startingPosition, ...startingPositions];
 
       players = players.filter((p) => p.id !== socket.id);
