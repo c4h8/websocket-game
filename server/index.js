@@ -4,6 +4,10 @@ var app = express();
 app.use(express.static('build'));
 var http = require('http').Server(app);
 
+const Player = require('./models/Player');
+const Coin = require('./models/Coin');
+const { startingPositionsArray, mapArray } = require('./utils');
+
 const port = process.env.PORT || '4000';
 
 const originList = process.env.RENDER_EXTERNAL_HOSTNAME
@@ -22,44 +26,25 @@ io.listen(http)
 http.listen(port, () => {
   console.log('Server is running on port ', port);
 })
-const Player = require('./models/Player');
-const Coin = require('./models/Coin');
+
 
 let players = [];
-let startingPositions = [
-  { x: 1, y: 1 },
-  { x: 1, y: 9 },
-  { x: 17, y: 1 },
-  { x: 17, y: 9 },
-  { x: 9, y: 1 },
-  { x: 9, y: 9 },
-  { x: 5, y: 5 },
-  { x: 12, y: 5 },
-  { x: 3, y: 3 },
-  { x: 15, y: 3 },
-  { x: 3, y: 7 },
-  { x: 15, y: 7 },
-  { x: 7, y: 3 },
-  { x: 13, y: 3 },
-  { x: 7, y: 7 },
-  { x: 13, y: 7 },
-];
+let startingPositions = startingPositionsArray;
+const map = mapArray;
 
 let colors = ['red', 'yellow', 'aqua', 'silver', 'orange', 'fuchsia', 'white', 'beige', 'lightsteelblue', 'olive'];
 
-const map = [
-  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1],
-  [1, 0, 1, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1],
-  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-];
+const getRandomEmptyGridPosition = () => {
+  const emptyPositions = map.map(
+    (row, rowIndex) => row.map((number, column) => ({ x: column, y: rowIndex, number })),
+  )
+    .flat()
+    .filter((element) => element.number === 0);
+
+  const randomEmptyPositionIndex = Math.floor(Math.random() * emptyPositions.length)
+
+  return emptyPositions[randomEmptyPositionIndex]
+}
 
 io.on('connection', (socket) => {
   console.log('CLIENT CONNECTED');
@@ -97,31 +82,34 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('send-update-powerup', (powerUp) => {
+    console.log(powerUp);
+    if (map[powerUp.gridPosition.y][powerUp.gridPosition.x] === 3) {
+      const newPowerUpPosition = getRandomEmptyGridPosition();
+
+      map[powerUp.gridPosition.y][powerUp.gridPosition.x] = 0;
+      map[newPowerUpPosition.y][newPowerUpPosition.x] = 3;
+
+      io.emit('remove-powerup');
+
+      setTimeout(function() {
+        io.emit('add-powerup', newPowerUpPosition);
+      }, 5000);
+    }
+  });
+
   socket.on('send-update-player-score', (removedCoin) => {
     if (map[removedCoin.gridPosition.y][removedCoin.gridPosition.x] === 2) {
-      const newCoinPossibleLocations = map.map(
-        (row, rowIndex) => row.map((number, column) => ({ x: column, y: rowIndex, number })),
-      )
-        .flat()
-        .filter((element) => element.number === 0);
-
-      const newCoinLocationIndex = Math.floor(Math.random() * newCoinPossibleLocations.length);
-
-      const newCoin = new Coin({
-        gridPosition: {
-          x: newCoinPossibleLocations[newCoinLocationIndex].x,
-          y: newCoinPossibleLocations[newCoinLocationIndex].y,
-        },
-      });
+      const newCoinGridPosition = getRandomEmptyGridPosition();
 
       map[removedCoin.gridPosition.y][removedCoin.gridPosition.x] = 0;
 
       const player = players.find((p) => p.id === socket.id);
       player.score += 1;
 
-      map[newCoin.gridPosition.y][newCoin.gridPosition.x] = 2;
+      map[newCoinGridPosition.y][newCoinGridPosition.x] = 2;
 
-      io.emit('update-player-score-and-map', { player, removedCoin, newCoin });
+      io.emit('update-player-score-and-map', { player, removedCoin, newCoinGridPosition });
     }
   });
 

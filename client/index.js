@@ -3,9 +3,10 @@
 import { io } from 'socket.io-client';
 
 
-import Boundary from './Boundary';
-import Player from './Player';
-import Coin from './Coin';
+import Boundary from './classes/Boundary';
+import Player from './classes/Player';
+import Coin from './classes/Coin';
+import PowerUp from './classes/PowerUp';
 
 const socket = io(import.meta.env.IS_PROD ? `${window.location.hostname}` : 'http://localhost:4000');
 
@@ -33,9 +34,10 @@ const keys = {
 let lastKey = '';
 
 let coins = [];
+let powerUp = null;
 const boundaries = [];
 
-const v = 5;
+let v = 5;
 
 function playerCollidesWithBoundary({
   player,
@@ -121,13 +123,13 @@ socket.on('update-player-position', player => {
   }
 });
 
-socket.on('update-player-score-and-map', ({ player, removedCoin, newCoin }) => {
+socket.on('update-player-score-and-map', ({ player, removedCoin, newCoinGridPosition }) => {
   coins = coins.filter((c) =>
     c.gridPosition.x !== removedCoin.gridPosition.x || c.gridPosition.y !== removedCoin.gridPosition.y
   );
   coins = [...coins, new Coin({ gridPosition: {
-    x: newCoin.gridPosition.x,
-    y: newCoin.gridPosition.y,
+    x: newCoinGridPosition.x,
+    y: newCoinGridPosition.y,
   }})]
   const anotherPlayer = players.find((p) => p.id === player.id);
   if (localPlayer && player.id === localPlayer.id) {
@@ -143,6 +145,16 @@ socket.on('update-player-score-and-map', ({ player, removedCoin, newCoin }) => {
 socket.on('delete-player', player => {
   players = players.filter((p) => p.id !== player.id);
   document.getElementById(`${player.color}Player`).remove()
+});
+
+socket.on('remove-powerup', (newPowerUpGridPosition) => {
+  powerUp = null;
+});
+
+socket.on('add-powerup', (newPowerUpGridPosition) => {
+  powerUp = new PowerUp({
+    gridPosition: newPowerUpGridPosition
+  });
 });
 
 let disconnected = false;
@@ -177,6 +189,14 @@ function createMap(map) {
             }
           }),
         );
+        break;
+      case 3:
+        powerUp = new PowerUp({
+          gridPosition: {
+            x: j,
+            y: i,
+          }
+        });
         break;
       default:
         break;
@@ -318,6 +338,37 @@ function animate(localPlayer) {
         y: coin.gridPosition.y
       }});
       coins.splice(i, 1);
+    }
+  }
+
+  if(powerUp) {
+    powerUp.draw(c);
+
+    if (Math.hypot(
+      powerUp.position.x - localPlayer.position.x,
+      powerUp.position.y - localPlayer.position.y,
+    ) < powerUp.radius + localPlayer.radius
+    ) {
+      v = 10;
+      localPlayer.velocity.x *= 2;
+      localPlayer.velocity.y *= 2;
+      socket.emit('send-update-powerup', powerUp);
+      powerUp = null;
+      socket.emit('send-update-player-position', {
+        position: localPlayer.position,
+        velocity: localPlayer.velocity,
+        id: localPlayer.id
+      });
+      setTimeout(function() {
+        v = 5;
+        localPlayer.velocity.x /= 2;
+        localPlayer.velocity.y /= 2;
+        socket.emit('send-update-player-position', {
+          position: localPlayer.position,
+          velocity: localPlayer.velocity,
+          id: localPlayer.id
+        });
+      }, 5000);
     }
   }
 
