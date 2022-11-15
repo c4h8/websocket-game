@@ -1,7 +1,6 @@
 
 var express = require('express')
 var app = express();
-app.use(express.static('build'));
 var http = require('http').Server(app);
 
 const Player = require('./models/Player');
@@ -24,8 +23,8 @@ const io = require('socket.io')(http, {
     origin: originList,
   },
 });
+app.use(express.static('build'));
 
-io.listen(http)
 http.listen(port, () => {
   console.log('Server is running on port ', port);
 })
@@ -121,4 +120,8 @@ io.on('connection', (socket) => {
     }
     console.log('CLIENT CONNECTION CLOSED');
   });
+
+  socket.on('get-rtt', (callback) => {
+    callback('response from server');
+  })
 });
