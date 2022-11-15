@@ -387,6 +387,19 @@ function spectate() {
   }, 1000 / fps);
 }
 
+
+const measureRTT = () => {
+  const t = performance.now();
+
+  socket.emit('get-rtt', (res) => {
+    const t2 = performance.now();
+    console.log(res);
+    console.log("rtt: ", t2-t);
+  })
+  console.log("transport: ", socket)
+}
+
+
 // Add event listener for keydown event
 // When user presses key (WASD) down:
 // 1. The value of lastKey is updated
@@ -408,6 +421,9 @@ window.addEventListener('keydown', ({ key }) => {
     case 'd':
       keys.d.pressed = true;
       lastKey = 'd';
+      break;
+    case 'p':
+      measureRTT();
       break;
     default:
       break;
