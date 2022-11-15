@@ -8,6 +8,9 @@ import Player from './classes/Player';
 import Coin from './classes/Coin';
 import PowerUp from './classes/PowerUp';
 
+import { createMap, playerCollidesWithBoundary } from './functions';
+import { keys, fps } from './constants';
+
 const socket = io(import.meta.env.IS_PROD ? `${window.location.hostname}` : 'http://localhost:4000');
 
 const canvas = document.querySelector('canvas');
@@ -16,45 +19,20 @@ const scoresDivElement = document.querySelector('#scores');
 const myScoreElement = document.querySelector('#myScore');
 const headerElement = document.querySelector('#header');
 
-const keys = {
-  w: {
-    pressed: false,
-  },
-  a: {
-    pressed: false,
-  },
-  s: {
-    pressed: false,
-  },
-  d: {
-    pressed: false,
-  },
-};
-
 let lastKey = '';
 
+let boundaries = [];
 let coins = [];
 let powerUp = null;
-const boundaries = [];
 
-let v = 5;
-
-function playerCollidesWithBoundary({
-  player,
-  boundary,
-}) {
-  return (
-    player.position.y - player.radius + player.velocity.y <= boundary.position.y + boundary.height
-      && player.position.x + player.radius + player.velocity.x >= boundary.position.x
-      && player.position.y + player.radius + player.velocity.y >= boundary.position.y
-      && player.position.x - player.radius + player.velocity.x
-      <= boundary.position.x + boundary.width
-  );
-}
+let velocity = 5;
 
 let localPlayer = null;
 let players = [];
 
+let disconnected = false;
+
+// Creates the local player and the map, and starts the game loop
 socket.on('create-game', ({ player, map }) => {
   canvas.width = Boundary.width * map[0].length;
   canvas.height = Boundary.height * map.length;
@@ -70,10 +48,12 @@ socket.on('create-game', ({ player, map }) => {
   headerElement.style.color = localPlayer.color;
   myScoreElement.style.color = localPlayer.color;
 
-  createMap(map);
-  animate(localPlayer);
+  powerUp = createMap(map, boundaries, coins);
+
+  gameLoop(localPlayer);
 });
 
+// Creates the map, and starts the spectate loop
 socket.on('spectate', (map) => {
   canvas.width = Boundary.width * map[0].length;
   canvas.height = Boundary.height * map.length;
@@ -81,10 +61,11 @@ socket.on('spectate', (map) => {
   headerElement.innerHTML = 'Spectating';
   document.getElementById('instructions').remove();
 
-  createMap(map);
+  powerUp = createMap(map, boundaries, coins);
   spectate();
 });
 
+// Creates a new player (opponent) and adds it to the players list
 socket.on('add-player', player => {
   if (localPlayer) {
     socket.emit('send-update-player-position', {
@@ -112,6 +93,7 @@ socket.on('add-player', player => {
   players = [newPlayer, ...players];
 });
 
+// Updates the position and velocity of the opponent
 socket.on('update-player-position', player => {
   const anotherPlayer = players.find((p) => p.id === player.id);
 
@@ -124,6 +106,8 @@ socket.on('update-player-position', player => {
   }
 });
 
+// Removes the collected coin from the map and adds a new coin to the map
+// Updates the score of the player who collected the coin
 socket.on('update-player-score-and-map', ({ player, removedCoin, newCoinGridPosition }) => {
   coins = coins.filter((c) =>
     c.gridPosition.x !== removedCoin.gridPosition.x || c.gridPosition.y !== removedCoin.gridPosition.y
@@ -143,23 +127,25 @@ socket.on('update-player-score-and-map', ({ player, removedCoin, newCoinGridPosi
   }
 });
 
+// Removes a player (opponent) from a list of players
 socket.on('delete-player', player => {
   players = players.filter((p) => p.id !== player.id);
   document.getElementById(player.name).remove()
 });
 
+// Removes a powerup from the map
 socket.on('remove-powerup', (newPowerUpGridPosition) => {
   powerUp = null;
 });
 
+// Adds a powerup to the map
 socket.on('add-powerup', (newPowerUpGridPosition) => {
   powerUp = new PowerUp({
     gridPosition: newPowerUpGridPosition
   });
 });
 
-let disconnected = false;
-
+// Removes the players and their scores from the screen
 socket.on("disconnect", () => {
   players.forEach(player => document.getElementById(player.name).remove());
   players = [];
@@ -168,49 +154,14 @@ socket.on("disconnect", () => {
   headerElement.style.color = 'white';
 });
 
-function createMap(map) {
-  map.forEach((row, i) => row.forEach((symbol, j) => {
-    switch (symbol) {
-      case 1:
-        boundaries.push(
-          new Boundary({
-            position: {
-              x: Boundary.width * j,
-              y: Boundary.height * i,
-            },
-          }),
-        );
-        break;
-      case 2:
-        coins.push(
-          new Coin({
-            gridPosition: {
-              x: j,
-              y: i,
-            }
-          }),
-        );
-        break;
-      case 3:
-        powerUp = new PowerUp({
-          gridPosition: {
-            x: j,
-            y: i,
-          }
-        });
-        break;
-      default:
-        break;
-    }
-  }));
-}
-
-
-const fps = 60;
-
-function animate(localPlayer) {
+// The main game loop which is looped fps times a second
+function gameLoop(localPlayer) {
+  // Clear the canvas
   c.clearRect(0, 0, canvas.width, canvas.height);
 
+  // Change the direction of the player if:
+  // 1. User has pressed a new key, and
+  // 2. Changing the direction does not break the rules of the game
   if (keys.w.pressed && lastKey === 'w') {
     const velocityBeforeUpdate = localPlayer.velocity.y;
     for (let i = 0; i < boundaries.length; i++) {
@@ -220,7 +171,7 @@ function animate(localPlayer) {
           ...localPlayer,
           velocity: {
             x: 0,
-            y: -v,
+            y: -velocity,
           },
         },
         boundary,
@@ -229,7 +180,7 @@ function animate(localPlayer) {
         localPlayer.velocity.y = 0;
         break;
       } else {
-        localPlayer.velocity.y = -v;
+        localPlayer.velocity.y = -velocity;
       }
     }
     if (localPlayer.velocity.y !== velocityBeforeUpdate) {
@@ -247,7 +198,7 @@ function animate(localPlayer) {
         player: {
           ...localPlayer,
           velocity: {
-            x: -v,
+            x: -velocity,
             y: 0,
           },
         },
@@ -257,7 +208,7 @@ function animate(localPlayer) {
         localPlayer.velocity.x = -0;
         break;
       } else {
-        localPlayer.velocity.x = -v;
+        localPlayer.velocity.x = -velocity;
       }
     }
     if (localPlayer.velocity.x !== velocityBeforeUpdate) {
@@ -276,7 +227,7 @@ function animate(localPlayer) {
           ...localPlayer,
           velocity: {
             x: 0,
-            y: v,
+            y: velocity,
           },
         },
         boundary,
@@ -285,7 +236,7 @@ function animate(localPlayer) {
         localPlayer.velocity.y = 0;
         break;
       } else {
-        localPlayer.velocity.y = v;
+        localPlayer.velocity.y = velocity;
       }
     }
     if (localPlayer.velocity.y !== velocityBeforeUpdate) {
@@ -303,7 +254,7 @@ function animate(localPlayer) {
         player: {
           ...localPlayer,
           velocity: {
-            x: v,
+            x: velocity,
             y: 0,
           },
         },
@@ -313,7 +264,7 @@ function animate(localPlayer) {
         localPlayer.velocity.x = -0;
         break;
       } else {
-        localPlayer.velocity.x = v;
+        localPlayer.velocity.x = velocity;
       }
     }
     if (localPlayer.velocity.x !== velocityBeforeUpdate) {
@@ -325,6 +276,10 @@ function animate(localPlayer) {
     }
   }
 
+  // Render the coins on the screen
+  // If coin is collected:
+  // 1. Send a message to the server
+  // 2. Remove the collected coin from the screen
   for (let i = coins.length - 1; i >= 0; i--) {
     const coin = coins[i];
     coin.draw(c);
@@ -342,6 +297,11 @@ function animate(localPlayer) {
     }
   }
 
+  // Render the powerup on the screen
+  // If powerup is collected:
+  // 1. Double the velocity of the local player
+  // 2. Send a message to the server
+  // 3. Remove the collected powerup from the screen
   if(powerUp) {
     powerUp.draw(c);
 
@@ -350,7 +310,7 @@ function animate(localPlayer) {
       powerUp.position.y - localPlayer.position.y,
     ) < powerUp.radius + localPlayer.radius
     ) {
-      v = 10;
+      velocity = 10;
       localPlayer.velocity.x *= 2;
       localPlayer.velocity.y *= 2;
       socket.emit('send-update-powerup', powerUp);
@@ -361,7 +321,7 @@ function animate(localPlayer) {
         id: localPlayer.id
       });
       setTimeout(function() {
-        v = 5;
+        velocity = 5;
         localPlayer.velocity.x /= 2;
         localPlayer.velocity.y /= 2;
         socket.emit('send-update-player-position', {
@@ -373,6 +333,8 @@ function animate(localPlayer) {
     }
   }
 
+  // Render the boundaries on the screen
+  // If player is colliding with the boundary, set the velocity of the player to 0
   boundaries.forEach((boundary) => {
     boundary.draw(c);
     if (playerCollidesWithBoundary({ player: localPlayer, boundary })) {
@@ -387,17 +349,19 @@ function animate(localPlayer) {
     })
   });
   
+  // Update the positions of the players and draw them on the screen
   players.forEach((p) => p.update(c));
-
   localPlayer.update(c);
 
   if (!disconnected) {
     setTimeout(() => {
-      requestAnimationFrame(() => animate(localPlayer));
+      requestAnimationFrame(() => gameLoop(localPlayer));
     }, 1000 / fps);
   }
 }
 
+
+// A function for spectating the game
 function spectate() {
   c.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -423,6 +387,10 @@ function spectate() {
   }, 1000 / fps);
 }
 
+// Add event listener for keydown event
+// When user presses key (WASD) down:
+// 1. The value of lastKey is updated
+// 2. The value of the key property 'pressed' is set to true
 window.addEventListener('keydown', ({ key }) => {
   switch (key) {
     case 'w':
@@ -446,6 +414,9 @@ window.addEventListener('keydown', ({ key }) => {
   }
 });
 
+// Add event listener for keyup event
+// When user releases key (WASD):
+// The value of the key property 'pressed' is set to false
 window.addEventListener('keyup', ({ key }) => {
   switch (key) {
     case 'w':
