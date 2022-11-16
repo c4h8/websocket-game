@@ -395,8 +395,8 @@ const measureRTT = () => {
     const t2 = performance.now();
     console.log(res);
     console.log("rtt: ", t2-t);
+    console.log("connection: ", socket.io?.engine?.transport?.name);
   })
-  console.log("transport: ", socket)
 }
 
 
