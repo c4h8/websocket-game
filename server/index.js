@@ -10,6 +10,8 @@ const {
   getRandomEmptyGridPosition
 } = require('./utils');
 
+const StatRecorder = new (require('./dataRecorder'))()
+
 const port = process.env.PORT || '4000';
 
 const originList = process.env.RENDER_EXTERNAL_HOSTNAME
@@ -121,7 +123,12 @@ io.on('connection', (socket) => {
     console.log('CLIENT CONNECTION CLOSED');
   });
 
+  // Respond to ping measurement
   socket.on('get-rtt', (callback) => {
     callback('response from server');
+  })
+
+  socket.on('save-statistics', () => {
+    StatRecorder.commit()
   })
 });
