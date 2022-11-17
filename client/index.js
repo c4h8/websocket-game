@@ -399,6 +399,10 @@ const measureRTT = () => {
   })
 }
 
+const saveSnapshot = () => {
+  socket.emit('save-statistics')
+}
+
 
 // Add event listener for keydown event
 // When user presses key (WASD) down:
@@ -424,6 +428,9 @@ window.addEventListener('keydown', ({ key }) => {
       break;
     case 'p':
       measureRTT();
+      break;
+    case 'o':
+      saveSnapshot();
       break;
     default:
       break;
