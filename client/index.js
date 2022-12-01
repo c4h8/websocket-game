@@ -8,7 +8,7 @@ import Player from './classes/Player';
 import Coin from './classes/Coin';
 import PowerUp from './classes/PowerUp';
 
-import { createMap, playerCollidesWithBoundary } from './functions';
+import { createMap, playerCollidesWithBoundary, playerCollidesWithAnotherPlayer } from './functions';
 import { keys, fps } from './constants';
 
 const socket = io(import.meta.env.IS_PROD ? `${window.location.hostname}` : 'http://localhost:4000');
@@ -31,6 +31,9 @@ let localPlayer = null;
 let players = [];
 
 let disconnected = false;
+
+let changeDirection = false;
+let collisionTimeCounter = 0;
 
 // Creates the local player and the map, and starts the game loop
 socket.on('create-game', ({ player, map }) => {
@@ -348,9 +351,33 @@ function gameLoop(localPlayer) {
       }
     })
   });
+
+  // If localplayer is colliding with another player, change the direction of the localplayer
+  if (changeDirection) {
+    localPlayer.velocity.x = -localPlayer.velocity.x;
+    localPlayer.velocity.y = -localPlayer.velocity.y;
+    socket.emit('send-update-player-position', {
+      position: localPlayer.position,
+      velocity: localPlayer.velocity,
+      id: localPlayer.id
+    });
+
+    changeDirection = false;
+    collisionTimeCounter = 5;
+  }
+
+  if (collisionTimeCounter > 0) {
+    collisionTimeCounter -= 1;
+  }
   
+  // Check if localplayer collides with other players
   // Update the positions of the players and draw them on the screen
-  players.forEach((p) => p.update(c));
+  players.forEach((p) => {
+    if(playerCollidesWithAnotherPlayer({ player: localPlayer, anotherPlayer: p}) && collisionTimeCounter === 0) {
+      changeDirection = true;
+    }
+    p.update(c);
+  });
   localPlayer.update(c);
 
   if (!disconnected) {
