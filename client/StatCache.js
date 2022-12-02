@@ -1,8 +1,10 @@
 class StatCache {
-  interval = null;
-  cache = ([]);
+  constructor() {
+    this.interval = null;
+    this.cache = ([]);
+  }
 
-  clear() {
+  reset() {
     this.cache = []
   }
 
@@ -12,7 +14,7 @@ class StatCache {
   }
 
   get() {
-    return [... this.cache]
+    return [...(this.cache)]
   }
 }
 

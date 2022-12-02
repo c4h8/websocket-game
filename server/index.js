@@ -10,7 +10,7 @@ const {
   getRandomEmptyGridPosition
 } = require('./utils');
 
-const DataRecorder = new (require('./dataRecorder'))()
+const dataRecorder = new (require('./dataRecorder'))()
 
 const port = process.env.PORT || '4000';
 
@@ -124,10 +124,11 @@ io.on('connection', (socket) => {
 
   // Respond to ping measurement
   socket.on('get-rtt', (callback) => {
-    callback('response from server');
+    callback(Date.now());
   })
 
-  socket.on('save-statistics', () => {
-    DataRecorder.commit()
+  socket.on('save-statistics', (data) => {
+    dataRecorder.push('fakeID', data)
+    dataRecorder.commit()
   })
 });
