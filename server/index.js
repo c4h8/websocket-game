@@ -10,7 +10,7 @@ const {
   getRandomEmptyGridPosition
 } = require('./utils');
 
-const StatRecorder = new (require('./dataRecorder'))()
+const DataRecorder = new (require('./dataRecorder'))()
 
 const port = process.env.PORT || '4000';
 
@@ -30,7 +30,6 @@ app.use(express.static('build'));
 http.listen(port, () => {
   console.log('Server is running on port ', port);
 })
-
 
 let players = [];
 let startingPositions = startingPositionsArray;
@@ -129,6 +128,6 @@ io.on('connection', (socket) => {
   })
 
   socket.on('save-statistics', () => {
-    StatRecorder.commit()
+    DataRecorder.commit()
   })
 });
