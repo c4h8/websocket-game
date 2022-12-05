@@ -10,6 +10,8 @@ const {
   getRandomEmptyGridPosition
 } = require('./utils');
 
+const { playerCollidesWithAnotherPlayer } = require('./functions');
+
 const StatRecorder = new (require('./dataRecorder'))()
 
 const port = process.env.PORT || '4000';
@@ -34,6 +36,25 @@ http.listen(port, () => {
 
 let players = [];
 let startingPositions = startingPositionsArray;
+
+const updateLoop = () => {
+  let collisions = [];
+  players.forEach((player) => {
+    players.forEach((anotherPlayer) => {
+      if (player !== anotherPlayer
+        && !(collisions.includes(player.id) && collisions.includes(anotherPlayer.id))
+        && playerCollidesWithAnotherPlayer(player, anotherPlayer)) {
+          collisions = [player.id, ...collisions];
+        }
+    })
+  })
+  io.emit('update-players', { playerList: players, collisions });
+  setTimeout(function() {
+    updateLoop();
+  }, 1000/60);
+};
+
+updateLoop();
 
 io.on('connection', (socket) => {
   console.log('CLIENT CONNECTED');
@@ -63,12 +84,11 @@ io.on('connection', (socket) => {
 
   // One of the clients sends their position and velocity
   // This information is broadcasted to all other clients
-  socket.on('send-update-player-position', (player) => {
-    socket.broadcast.emit('update-player-position', player);
-    const somePlayer = players.find((p) => p.id === socket.id);
-    if (somePlayer) {
-      somePlayer.position = player.position;
-      somePlayer.velocity = player.velocity;
+  socket.on('send-update-player', (player) => {
+    const playerToUpdate = players.find((p) => p.id === socket.id);
+    if (playerToUpdate) {
+      playerToUpdate.position = player.position;
+      playerToUpdate.velocity = player.velocity;
     }
   });
 

@@ -32,8 +32,7 @@ let players = [];
 
 let disconnected = false;
 
-let changeDirection = false;
-let collisionTimeCounter = 0;
+let collisionDetected = false;
 
 // Creates the local player and the map, and starts the game loop
 socket.on('create-game', ({ player, map }) => {
@@ -96,16 +95,25 @@ socket.on('add-player', player => {
   players = [newPlayer, ...players];
 });
 
-// Updates the position and velocity of the opponent
-socket.on('update-player-position', player => {
-  const anotherPlayer = players.find((p) => p.id === player.id);
+socket.on('update-players', ({ playerList, collisions }) => {
+  playerList.forEach(player => {
+    const playerToUpdate = players.find((p) => p.id === player.id);
+  if (playerToUpdate && player.id !== localPlayer.id) {
+      playerToUpdate.position.x = player.position.x;
+      playerToUpdate.position.y = player.position.y;
+  
+      playerToUpdate.velocity.x = player.velocity.x;
+      playerToUpdate.velocity.y = player.velocity.y;
+    }
+  })
 
-  if (anotherPlayer) {
-    anotherPlayer.position.x = player.position.x;
-    anotherPlayer.position.y = player.position.y;
-
-    anotherPlayer.velocity.x = player.velocity.x;
-    anotherPlayer.velocity.y = player.velocity.y;
+  if (collisions.includes(localPlayer.id)) {
+    const localPlayerToUpdate = playerList.find((p) => p.id === localPlayer.id);
+    localPlayer.velocity.x = localPlayerToUpdate.velocity.x;
+    localPlayer.velocity.y = localPlayerToUpdate.velocity.y;
+    localPlayer.position.x += localPlayer.velocity.x;
+    localPlayer.position.y += localPlayer.velocity.y;
+    collisionDetected = true;
   }
 });
 
@@ -166,7 +174,6 @@ function gameLoop(localPlayer) {
   // 1. User has pressed a new key, and
   // 2. Changing the direction does not break the rules of the game
   if (keys.w.pressed && lastKey === 'w') {
-    const velocityBeforeUpdate = localPlayer.velocity.y;
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
       if (playerCollidesWithBoundary({
@@ -186,15 +193,7 @@ function gameLoop(localPlayer) {
         localPlayer.velocity.y = -velocity;
       }
     }
-    if (localPlayer.velocity.y !== velocityBeforeUpdate) {
-      socket.emit('send-update-player-position', {
-        position: localPlayer.position,
-        velocity: localPlayer.velocity,
-        id: localPlayer.id
-      });
-    }
   } else if (keys.a.pressed && lastKey === 'a') {
-    const velocityBeforeUpdate = localPlayer.velocity.x;
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
       if (playerCollidesWithBoundary({
@@ -214,15 +213,7 @@ function gameLoop(localPlayer) {
         localPlayer.velocity.x = -velocity;
       }
     }
-    if (localPlayer.velocity.x !== velocityBeforeUpdate) {
-      socket.emit('send-update-player-position', {
-        position: localPlayer.position,
-        velocity: localPlayer.velocity,
-        id: localPlayer.id
-      });
-    }
   } else if (keys.s.pressed && lastKey === 's') {
-    const velocityBeforeUpdate = localPlayer.velocity.y;
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
       if (playerCollidesWithBoundary({
@@ -242,15 +233,7 @@ function gameLoop(localPlayer) {
         localPlayer.velocity.y = velocity;
       }
     }
-    if (localPlayer.velocity.y !== velocityBeforeUpdate) {
-      socket.emit('send-update-player-position', {
-        position: localPlayer.position,
-        velocity: localPlayer.velocity,
-        id: localPlayer.id
-      });
-    }
   } else if (keys.d.pressed && lastKey === 'd') {
-    const velocityBeforeUpdate = localPlayer.velocity.x;
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
       if (playerCollidesWithBoundary({
@@ -269,13 +252,6 @@ function gameLoop(localPlayer) {
       } else {
         localPlayer.velocity.x = velocity;
       }
-    }
-    if (localPlayer.velocity.x !== velocityBeforeUpdate) {
-      socket.emit('send-update-player-position', {
-        position: localPlayer.position,
-        velocity: localPlayer.velocity,
-        id: localPlayer.id
-      });
     }
   }
 
@@ -318,20 +294,10 @@ function gameLoop(localPlayer) {
       localPlayer.velocity.y *= 2;
       socket.emit('send-update-powerup', powerUp);
       powerUp = null;
-      socket.emit('send-update-player-position', {
-        position: localPlayer.position,
-        velocity: localPlayer.velocity,
-        id: localPlayer.id
-      });
       setTimeout(function() {
         velocity = 5;
         localPlayer.velocity.x /= 2;
         localPlayer.velocity.y /= 2;
-        socket.emit('send-update-player-position', {
-          position: localPlayer.position,
-          velocity: localPlayer.velocity,
-          id: localPlayer.id
-        });
       }, 5000);
     }
   }
@@ -351,34 +317,18 @@ function gameLoop(localPlayer) {
       }
     })
   });
-
-  // If localplayer is colliding with another player, change the direction of the localplayer
-  if (changeDirection) {
-    localPlayer.velocity.x = -localPlayer.velocity.x;
-    localPlayer.velocity.y = -localPlayer.velocity.y;
-    socket.emit('send-update-player-position', {
-      position: localPlayer.position,
-      velocity: localPlayer.velocity,
-      id: localPlayer.id
-    });
-
-    changeDirection = false;
-    collisionTimeCounter = 5;
-  }
-
-  if (collisionTimeCounter > 0) {
-    collisionTimeCounter -= 1;
-  }
   
-  // Check if localplayer collides with other players
   // Update the positions of the players and draw them on the screen
   players.forEach((p) => {
-    if(playerCollidesWithAnotherPlayer({ player: localPlayer, anotherPlayer: p}) && collisionTimeCounter === 0) {
-      changeDirection = true;
-    }
     p.update(c);
   });
+
   localPlayer.update(c);
+  socket.emit('send-update-player', {
+    position: localPlayer.position,
+    velocity: localPlayer.velocity,
+    id: localPlayer.id
+  });
 
   if (!disconnected) {
     setTimeout(() => {
