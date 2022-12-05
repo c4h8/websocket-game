@@ -37,8 +37,20 @@ http.listen(port, () => {
 
 
 let players = [];
-let coins = [];
+let coins = [
+  new Coin({ gridPosition: { x: 5, y: 4 } }),
+  new Coin({ gridPosition: { x: 14, y: 3 } }),
+  new Coin({ gridPosition: { x: 17, y: 8 } }),
+];
 let powerUp = new PowerUp({ gridPosition: { x: 9, y: 5 } });
+
+const initializeMap = () => {
+  coins.forEach((c) => map[c.gridPosition.y][c.gridPosition.x] = 2);
+  map[powerUp.gridPosition.y][powerUp.gridPosition.x] = 3;
+}
+
+initializeMap();
+
 let startingPositions = startingPositionsArray;
 
 const updatePowerUp = (player) => {
@@ -57,26 +69,45 @@ const updatePowerUp = (player) => {
     io.emit('add-powerup', newPowerUpGridPosition);
     player.velocity.x /= 2;
     player.velocity.y /= 2;
-    io.emit('update-players', { playerList: players, collisions: [], powerUpId: player.id });
+    io.emit('update', {
+      playerList: players,
+      collisions: [],
+      powerUpId: player.id,
+      updatedCoins: []
+    });
   }, 5000);
 
   return player.id;
 }
 
-const playerTouchesPowerUp = (player) => {
+const playerTouchesElement = (player, element) => {
   return Math.hypot(
-    powerUp.position.x - player.position.x,
-    powerUp.position.y - player.position.y,
-  ) < powerUp.radius + player.radius
+    element.position.x - player.position.x,
+    element.position.y - player.position.y,
+  ) < element.radius + player.radius
 }
 
 const updateLoop = () => {
   let collisions = [];
   let powerUpId = null;
+  let updatedCoins = [];
   players.forEach((player) => {
-    if (powerUp && playerTouchesPowerUp(player)) {
+    if (powerUp && playerTouchesElement(player, powerUp)) {
       powerUpId = updatePowerUp(player);
     }
+    coins.forEach((coin) => {
+      if (playerTouchesElement(player, coin)) {
+        map[coin.gridPosition.y][coin.gridPosition.x] = 0;
+        coins = coins.filter(c => c !== coin);
+
+        player.score += 1;
+
+        const newCoinGridPosition = getRandomEmptyGridPosition();
+        coins = [...coins, new Coin({ gridPosition: newCoinGridPosition })]
+        map[newCoinGridPosition.y][newCoinGridPosition.x] = 2;
+        updatedCoins = coins;
+      }
+    });
     players.forEach((anotherPlayer) => {
       if (player !== anotherPlayer
         && !(collisions.includes(player.id) && collisions.includes(anotherPlayer.id))
@@ -85,7 +116,7 @@ const updateLoop = () => {
         }
     })
   })
-  io.emit('update-players', { playerList: players, collisions, powerUpId });
+  io.emit('update', { playerList: players, collisions, powerUpId, updatedCoins });
   setTimeout(function() {
     updateLoop();
   }, 1000/60);
@@ -126,43 +157,6 @@ io.on('connection', (socket) => {
     if (playerToUpdate) {
       playerToUpdate.position = player.position;
       playerToUpdate.velocity = player.velocity;
-    }
-  });
-
-
-  // One of the clients has collected a powerup
-  // Powerup is removed from the map
-  // New powerup position is emitted to all clients after 5 seconds
-  socket.on('send-update-powerup', (powerUp) => {
-    if (map[powerUp.gridPosition.y][powerUp.gridPosition.x] === 3) {
-      map[powerUp.gridPosition.y][powerUp.gridPosition.x] = 0;
-
-      io.emit('remove-powerup');
-
-      setTimeout(function() {
-        const newPowerUpPosition = getRandomEmptyGridPosition();
-        map[newPowerUpPosition.y][newPowerUpPosition.x] = 3;
-        io.emit('add-powerup', newPowerUpPosition);
-      }, 5000);
-    }
-  });
-
-
-  // One of the clients has collected a coin
-  // The score of the client is increased by one
-  // New coin position is emitted to all clients
-  socket.on('send-update-player-score', (removedCoin) => {
-    if (map[removedCoin.gridPosition.y][removedCoin.gridPosition.x] === 2) {
-      const newCoinGridPosition = getRandomEmptyGridPosition();
-
-      map[removedCoin.gridPosition.y][removedCoin.gridPosition.x] = 0;
-
-      const player = players.find((p) => p.id === socket.id);
-      player.score += 1;
-
-      map[newCoinGridPosition.y][newCoinGridPosition.x] = 2;
-
-      io.emit('update-player-score-and-map', { player, removedCoin, newCoinGridPosition });
     }
   });
 

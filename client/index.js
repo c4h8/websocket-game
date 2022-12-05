@@ -95,15 +95,27 @@ socket.on('add-player', player => {
   players = [newPlayer, ...players];
 });
 
-socket.on('update-players', ({ playerList, collisions, powerUpId }) => {
+socket.on('update', ({ playerList, collisions, powerUpId, updatedCoins }) => {
   playerList.forEach(player => {
     const playerToUpdate = players.find((p) => p.id === player.id);
-  if (playerToUpdate && player.id !== localPlayer.id) {
-      playerToUpdate.position.x = player.position.x;
-      playerToUpdate.position.y = player.position.y;
-  
-      playerToUpdate.velocity.x = player.velocity.x;
-      playerToUpdate.velocity.y = player.velocity.y;
+
+    if (playerToUpdate && player.id !== localPlayer.id) {
+        playerToUpdate.position.x = player.position.x;
+        playerToUpdate.position.y = player.position.y;
+    
+        playerToUpdate.velocity.x = player.velocity.x;
+        playerToUpdate.velocity.y = player.velocity.y;
+
+        if (player.score > playerToUpdate.score) {
+          playerToUpdate.score = player.score;
+          const scoreElement = document.getElementById(playerToUpdate.name);
+          scoreElement.innerHTML = `${playerToUpdate.name} score: ${playerToUpdate.score}`;
+        }
+    }
+
+    if (player.id === localPlayer.id && player.score > localPlayer.score) {
+      localPlayer.score = player.score;
+      myScoreElement.innerHTML = `My score: ${localPlayer.score}`;
     }
   })
 
@@ -127,6 +139,10 @@ socket.on('update-players', ({ playerList, collisions, powerUpId }) => {
       localPlayer.velocity.x = localPlayerToUpdate.velocity.x;
       localPlayer.velocity.y = localPlayerToUpdate.velocity.y;
     }
+  }
+
+  if (updatedCoins.length > 0) {
+    coins = updatedCoins.map(c => new Coin({ gridPosition: c.gridPosition }));
   }
 });
 
@@ -275,18 +291,6 @@ function gameLoop(localPlayer) {
   for (let i = coins.length - 1; i >= 0; i--) {
     const coin = coins[i];
     coin.draw(c);
-
-    if (Math.hypot(
-      coin.position.x - localPlayer.position.x,
-      coin.position.y - localPlayer.position.y,
-    ) < coin.radius + localPlayer.radius
-    ) {
-      socket.emit('send-update-player-score', { gridPosition: {
-        x: coin.gridPosition.x,
-        y: coin.gridPosition.y
-      }});
-      coins.splice(i, 1);
-    }
   }
 
   // Render the powerup on the screen
