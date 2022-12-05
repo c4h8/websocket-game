@@ -8,7 +8,7 @@ import Player from './classes/Player';
 import Coin from './classes/Coin';
 import PowerUp from './classes/PowerUp';
 
-import { createMap, playerCollidesWithBoundary, playerCollidesWithAnotherPlayer } from './functions';
+import { createMap, playerCollidesWithBoundary } from './functions';
 import { keys, fps } from './constants';
 
 const socket = io(import.meta.env.IS_PROD ? `${window.location.hostname}` : 'http://localhost:4000');
@@ -95,7 +95,7 @@ socket.on('add-player', player => {
   players = [newPlayer, ...players];
 });
 
-socket.on('update-players', ({ playerList, collisions }) => {
+socket.on('update-players', ({ playerList, collisions, powerUpId }) => {
   playerList.forEach(player => {
     const playerToUpdate = players.find((p) => p.id === player.id);
   if (playerToUpdate && player.id !== localPlayer.id) {
@@ -114,6 +114,19 @@ socket.on('update-players', ({ playerList, collisions }) => {
     localPlayer.position.x += localPlayer.velocity.x;
     localPlayer.position.y += localPlayer.velocity.y;
     collisionDetected = true;
+  }
+
+  if (powerUpId === localPlayer.id) {
+    const localPlayerToUpdate = playerList.find((p) => p.id === localPlayer.id);
+    if(velocity === 5) {
+      velocity = 10;
+      localPlayer.velocity.x = localPlayerToUpdate.velocity.x;
+      localPlayer.velocity.y = localPlayerToUpdate.velocity.y;
+    } else {
+      velocity = 5;
+      localPlayer.velocity.x = localPlayerToUpdate.velocity.x;
+      localPlayer.velocity.y = localPlayerToUpdate.velocity.y;
+    }
   }
 });
 
@@ -145,7 +158,7 @@ socket.on('delete-player', player => {
 });
 
 // Removes a powerup from the map
-socket.on('remove-powerup', (newPowerUpGridPosition) => {
+socket.on('remove-powerup', () => {
   powerUp = null;
 });
 
@@ -277,29 +290,8 @@ function gameLoop(localPlayer) {
   }
 
   // Render the powerup on the screen
-  // If powerup is collected:
-  // 1. Double the velocity of the local player
-  // 2. Send a message to the server
-  // 3. Remove the collected powerup from the screen
   if(powerUp) {
     powerUp.draw(c);
-
-    if (Math.hypot(
-      powerUp.position.x - localPlayer.position.x,
-      powerUp.position.y - localPlayer.position.y,
-    ) < powerUp.radius + localPlayer.radius
-    ) {
-      velocity = 10;
-      localPlayer.velocity.x *= 2;
-      localPlayer.velocity.y *= 2;
-      socket.emit('send-update-powerup', powerUp);
-      powerUp = null;
-      setTimeout(function() {
-        velocity = 5;
-        localPlayer.velocity.x /= 2;
-        localPlayer.velocity.y /= 2;
-      }, 5000);
-    }
   }
 
   // Render the boundaries on the screen

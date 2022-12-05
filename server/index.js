@@ -1,16 +1,18 @@
 
-var express = require('express')
+var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 
 const Player = require('./models/Player');
+const PowerUp = require('./models/PowerUp');
+const Coin = require('./models/Coin');
+
 const {
   startingPositionsArray,
   map,
-  getRandomEmptyGridPosition
+  playerCollidesWithAnotherPlayer,
+  getRandomEmptyGridPosition,
 } = require('./utils');
-
-const { playerCollidesWithAnotherPlayer } = require('./functions');
 
 const StatRecorder = new (require('./dataRecorder'))()
 
@@ -35,11 +37,46 @@ http.listen(port, () => {
 
 
 let players = [];
+let coins = [];
+let powerUp = new PowerUp({ gridPosition: { x: 9, y: 5 } });
 let startingPositions = startingPositionsArray;
+
+const updatePowerUp = (player) => {
+  map[powerUp.gridPosition.y][powerUp.gridPosition.x] = 0;
+  powerUp = null;
+
+  io.emit('remove-powerup');
+
+  player.velocity.x *= 2;
+  player.velocity.y *= 2;
+
+  setTimeout(function() {
+    const newPowerUpGridPosition = getRandomEmptyGridPosition();
+    powerUp = new PowerUp({ gridPosition: newPowerUpGridPosition });
+    map[newPowerUpGridPosition.y][newPowerUpGridPosition.x] = 3;
+    io.emit('add-powerup', newPowerUpGridPosition);
+    player.velocity.x /= 2;
+    player.velocity.y /= 2;
+    io.emit('update-players', { playerList: players, collisions: [], powerUpId: player.id });
+  }, 5000);
+
+  return player.id;
+}
+
+const playerTouchesPowerUp = (player) => {
+  return Math.hypot(
+    powerUp.position.x - player.position.x,
+    powerUp.position.y - player.position.y,
+  ) < powerUp.radius + player.radius
+}
 
 const updateLoop = () => {
   let collisions = [];
+  let powerUpId = null;
   players.forEach((player) => {
+    if (powerUp && playerTouchesPowerUp(player)) {
+      powerUpId = updatePowerUp(player);
+    }
     players.forEach((anotherPlayer) => {
       if (player !== anotherPlayer
         && !(collisions.includes(player.id) && collisions.includes(anotherPlayer.id))
@@ -48,7 +85,7 @@ const updateLoop = () => {
         }
     })
   })
-  io.emit('update-players', { playerList: players, collisions });
+  io.emit('update-players', { playerList: players, collisions, powerUpId });
   setTimeout(function() {
     updateLoop();
   }, 1000/60);

@@ -55,23 +55,3 @@ export function playerCollidesWithBoundary({
       <= boundary.position.x + boundary.width
   );
 }
-
-export function playerCollidesWithAnotherPlayer({
-  player,
-  anotherPlayer,
-}) {
-  const collision = player.position.x + 2 * player.radius + player.velocity.x >= anotherPlayer.position.x
-    && player.position.x - 2 * player.radius + player.velocity.x <= anotherPlayer.position.x
-    && player.position.y - 2 * player.radius + player.velocity.y <= anotherPlayer.position.y
-    && player.position.y + 2 * player.radius + player.velocity.y >= anotherPlayer.position.y;
-  
-  if (player.velocity.x !== 0 && collision && (Math.abs(player.position.y - anotherPlayer.position.y) < Math.abs(player.position.x - anotherPlayer.position.x))) {
-    return true;
-  }
-
-  if (player.velocity.y !== 0 && collision && (Math.abs(player.position.y - anotherPlayer.position.y) > Math.abs(player.position.x - anotherPlayer.position.x))) {
-    return true;
-  }
-  
-  return false;
-}
