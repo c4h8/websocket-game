@@ -99,7 +99,7 @@ socket.on('update', ({ playerList, collisions, powerUpId, updatedCoins }) => {
   playerList.forEach(player => {
     const playerToUpdate = players.find((p) => p.id === player.id);
 
-    if (playerToUpdate && player.id !== localPlayer.id) {
+    if (playerToUpdate && (localPlayer === null || player.id !== localPlayer.id)) {
         playerToUpdate.position.x = player.position.x;
         playerToUpdate.position.y = player.position.y;
     
@@ -113,13 +113,13 @@ socket.on('update', ({ playerList, collisions, powerUpId, updatedCoins }) => {
         }
     }
 
-    if (player.id === localPlayer.id && player.score > localPlayer.score) {
+    if (localPlayer && player.id === localPlayer.id && player.score > localPlayer.score) {
       localPlayer.score = player.score;
       myScoreElement.innerHTML = `My score: ${localPlayer.score}`;
     }
   })
 
-  if (collisions.includes(localPlayer.id)) {
+  if (localPlayer && collisions.includes(localPlayer.id)) {
     const localPlayerToUpdate = playerList.find((p) => p.id === localPlayer.id);
     localPlayer.velocity.x = localPlayerToUpdate.velocity.x;
     localPlayer.velocity.y = localPlayerToUpdate.velocity.y;
@@ -128,7 +128,7 @@ socket.on('update', ({ playerList, collisions, powerUpId, updatedCoins }) => {
     collisionDetected = true;
   }
 
-  if (powerUpId === localPlayer.id) {
+  if (localPlayer && powerUpId === localPlayer.id) {
     const localPlayerToUpdate = playerList.find((p) => p.id === localPlayer.id);
     if(velocity === 5) {
       velocity = 10;
@@ -143,27 +143,6 @@ socket.on('update', ({ playerList, collisions, powerUpId, updatedCoins }) => {
 
   if (updatedCoins.length > 0) {
     coins = updatedCoins.map(c => new Coin({ gridPosition: c.gridPosition }));
-  }
-});
-
-// Removes the collected coin from the map and adds a new coin to the map
-// Updates the score of the player who collected the coin
-socket.on('update-player-score-and-map', ({ player, removedCoin, newCoinGridPosition }) => {
-  coins = coins.filter((c) =>
-    c.gridPosition.x !== removedCoin.gridPosition.x || c.gridPosition.y !== removedCoin.gridPosition.y
-  );
-  coins = [...coins, new Coin({ gridPosition: {
-    x: newCoinGridPosition.x,
-    y: newCoinGridPosition.y,
-  }})]
-  const anotherPlayer = players.find((p) => p.id === player.id);
-  if (localPlayer && player.id === localPlayer.id) {
-    localPlayer.score = player.score;
-    myScoreElement.innerHTML = `My score: ${localPlayer.score}`;
-  } else if (anotherPlayer) {
-    anotherPlayer.score = player.score;
-    const scoreElement = document.getElementById(anotherPlayer.name);
-    scoreElement.innerHTML = `${anotherPlayer.name} score: ${anotherPlayer.score}`;
   }
 });
 
@@ -314,9 +293,9 @@ function gameLoop(localPlayer) {
     })
   });
   
-  // Update the positions of the players and draw them on the screen
+  // Draw the players on the screen
   players.forEach((p) => {
-    p.update(c);
+    p.draw(c);
   });
 
   localPlayer.update(c);
@@ -343,6 +322,10 @@ function spectate() {
     coin.draw(c);
   }
 
+  if(powerUp) {
+    powerUp.draw(c);
+  }
+
   boundaries.forEach((boundary) => {
     boundary.draw(c);
     players.forEach(player => {
@@ -353,7 +336,7 @@ function spectate() {
     })
   });
   
-  players.forEach((p) => p.update(c));
+  players.forEach((p) => p.draw(c));
 
   setTimeout(() => {
     requestAnimationFrame(spectate);

@@ -127,7 +127,7 @@ updateLoop();
 io.on('connection', (socket) => {
   console.log('CLIENT CONNECTED');
 
-  if (players.length < 10) {
+  if (players.length < 2) {
     const thisPlayer = new Player({
       startingPosition: startingPositions[0],
       id: socket.id,
@@ -151,7 +151,6 @@ io.on('connection', (socket) => {
 
 
   // One of the clients sends their position and velocity
-  // This information is broadcasted to all other clients
   socket.on('send-update-player', (player) => {
     const playerToUpdate = players.find((p) => p.id === socket.id);
     if (playerToUpdate) {
