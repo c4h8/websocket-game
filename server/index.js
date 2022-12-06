@@ -10,8 +10,6 @@ const {
   getRandomEmptyGridPosition
 } = require('./utils');
 
-const GAME_STATE = require('./gameState')
-
 const dataRecorder = new (require('./dataRecorder'))()
 
 const port = process.env.PORT || '4000';
@@ -35,10 +33,6 @@ http.listen(port, () => {
 
 let players = [];
 let startingPositions = startingPositionsArray;
-// let gameState = GAME_STATE.IN_GAME;
-// setTimeout(() => {
-//   io.emit('')
-// }, "1000")
 
 io.on('connection', (socket) => {
   console.log('CLIENT CONNECTED');
