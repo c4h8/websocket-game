@@ -351,7 +351,9 @@ const saveSnapshot = () => {
   statCache.reset();
 }
 
-const startStatRecording = () => socket.emit('start-stat-recording', ack => console.log(ack));
+const startStatRecording = () => {
+  localStorage.getItem('isAdmin') && socket.emit('start-stat-recording', ack => console.log(ack))
+};
 
 // Add event listener for keydown event
 // When user presses key (WASD) down:
@@ -377,9 +379,6 @@ window.addEventListener('keydown', ({ key }) => {
       break;
     case 'p':
       measureRTT();
-      break;
-    case 'o':
-      saveSnapshot();
       break;
     case 'l':
       startStatRecording();

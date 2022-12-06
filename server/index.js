@@ -14,8 +14,6 @@ const {
   getRandomEmptyGridPosition,
 } = require('./utils');
 
-const GAME_STATE = require('./gameState')
-
 const dataRecorder = new (require('./dataRecorder'))()
 
 const port = process.env.PORT || '4000';
@@ -53,10 +51,6 @@ const initializeMap = () => {
 initializeMap();
 
 let startingPositions = startingPositionsArray;
-// let gameState = GAME_STATE.IN_GAME;
-// setTimeout(() => {
-//   io.emit('')
-// }, "1000")
 
 const updatePowerUp = (player) => {
   map[powerUp.gridPosition.y][powerUp.gridPosition.x] = 0;
