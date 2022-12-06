@@ -1,5 +1,9 @@
 const fs = require('fs/promises');
 
+const pathRoot = process.env?.RENDER_EXTERNAL_HOSTNAME
+  ? '/var/data/'
+  : './data/'
+
 const mockState = ({
   player1: [
     {
@@ -9,18 +13,11 @@ const mockState = ({
   ]
 });
 
-
-const pathRoot = process.env?.RENDER_EXTERNAL_HOSTNAME
-  ? '/var/data/'
-  : './data/'
-
 class StatRecorder {
-  //state = ({})
-
   state = {}
 
-  constructor() {
-    this.state = mockState;
+  constructor(initialState) {
+    this.state = initialState || {};
   }
 
   reset() {
@@ -31,7 +28,7 @@ class StatRecorder {
     if(!this.state[userID])
       this.state[userID] = []
 
-      this.state[userID].push(payload)
+    this.state[userID] = [...this.state[userID], ...payload]
   }
 
   async commit() {

@@ -14,7 +14,9 @@ const {
   getRandomEmptyGridPosition,
 } = require('./utils');
 
-const StatRecorder = new (require('./dataRecorder'))()
+const GAME_STATE = require('./gameState')
+
+const dataRecorder = new (require('./dataRecorder'))()
 
 const port = process.env.PORT || '4000';
 
@@ -35,7 +37,6 @@ http.listen(port, () => {
   console.log('Server is running on port ', port);
 })
 
-
 let players = [];
 let coins = [
   new Coin({ gridPosition: { x: 5, y: 4 } }),
@@ -52,6 +53,10 @@ const initializeMap = () => {
 initializeMap();
 
 let startingPositions = startingPositionsArray;
+// let gameState = GAME_STATE.IN_GAME;
+// setTimeout(() => {
+//   io.emit('')
+// }, "1000")
 
 const updatePowerUp = (player) => {
   map[powerUp.gridPosition.y][powerUp.gridPosition.x] = 0;
@@ -167,13 +172,34 @@ io.on('connection', (socket) => {
     }
     console.log('CLIENT CONNECTION CLOSED');
   });
+  
 
   // Respond to ping measurement
   socket.on('get-rtt', (callback) => {
-    callback('response from server');
+    callback(Date.now());
+  });
+
+
+  // start recording session.
+  let recordSessionActive = false;
+  socket.on('start-stat-recording', (ack) => {
+    if(!recordSessionActive) {
+      recordSessionActive = true
+      console.log('starting recorded session');
+      ack('starting recorded session')
+
+      setTimeout(() => {
+        socket.emit('server-request-statistics');
+
+        setTimeout(() =>{ dataRecorder.commit(); recordSessionActive = false }, 10*1000)
+      }, 60* 1000)
+    } else {
+      ack('record session already in progress')
+    }
   })
 
-  socket.on('save-statistics', () => {
-    StatRecorder.commit()
-  })
+  // Players push ping data to the server
+  socket.on('save-statistics', (data) => {
+    dataRecorder.push(`${socket.id}`, data)
+  });
 });

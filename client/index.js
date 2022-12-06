@@ -7,6 +7,7 @@ import Boundary from './classes/Boundary';
 import Player from './classes/Player';
 import Coin from './classes/Coin';
 import PowerUp from './classes/PowerUp';
+import StatCache from './StatCache';
 
 import { createMap, playerCollidesWithBoundary } from './functions';
 import { keys, fps } from './constants';
@@ -322,21 +323,35 @@ function spectate() {
 }
 
 
+
+const statCache = new StatCache();
+
 const measureRTT = () => {
   const t = performance.now();
 
-  socket.emit('get-rtt', (res) => {
+  socket.emit('get-rtt', (serverTimestamp) => {
     const t2 = performance.now();
+    const rtt = t2- t;
+    statCache.push({c: rtt, s: serverTimestamp });
     console.log(res);
-    console.log("rtt: ", t2-t);
+    console.log("rtt: ", rtt);
     console.log("connection: ", socket.io?.engine?.transport?.name);
   })
 }
 
+socket.on('server-request-statistics', () => {
+  const data = statCache.get();
+  socket.emit('save-statistics', data);
+  statCache.reset();
+});
+
 const saveSnapshot = () => {
-  socket.emit('save-statistics')
+  const data = statCache.get();
+  socket.emit('save-statistics', data);
+  statCache.reset();
 }
 
+const startStatRecording = () => socket.emit('start-stat-recording', ack => console.log(ack));
 
 // Add event listener for keydown event
 // When user presses key (WASD) down:
@@ -365,6 +380,9 @@ window.addEventListener('keydown', ({ key }) => {
       break;
     case 'o':
       saveSnapshot();
+      break;
+    case 'l':
+      startStatRecording();
       break;
     default:
       break;
