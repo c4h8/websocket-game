@@ -283,12 +283,19 @@ function gameLoop(localPlayer) {
     p.draw(c);
   });
 
-  localPlayer.update(c);
+  if (!collisionDetected) {
+    localPlayer.update(c);
+  } else {
+    localPlayer.draw(c);
+  }
+
   socket.emit('send-update-player', {
     position: localPlayer.position,
     velocity: localPlayer.velocity,
     id: localPlayer.id
   });
+
+  collisionDetected = false;
 
   if (!disconnected) {
     setTimeout(() => {
