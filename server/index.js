@@ -10,6 +10,8 @@ const {
   getRandomEmptyGridPosition
 } = require('./utils');
 
+const GAME_STATE = require('./gameState')
+
 const dataRecorder = new (require('./dataRecorder'))()
 
 const port = process.env.PORT || '4000';
@@ -33,6 +35,10 @@ http.listen(port, () => {
 
 let players = [];
 let startingPositions = startingPositionsArray;
+// let gameState = GAME_STATE.IN_GAME;
+// setTimeout(() => {
+//   io.emit('')
+// }, "1000")
 
 io.on('connection', (socket) => {
   console.log('CLIENT CONNECTED');
@@ -121,14 +127,34 @@ io.on('connection', (socket) => {
     }
     console.log('CLIENT CONNECTION CLOSED');
   });
+  
 
   // Respond to ping measurement
   socket.on('get-rtt', (callback) => {
     callback(Date.now());
+  });
+
+
+  // start recording session.
+  let recordSessionActive = false;
+  socket.on('start-stat-recording', (ack) => {
+    if(!recordSessionActive) {
+      recordSessionActive = true
+      console.log('starting recorded session');
+      ack('starting recorded session')
+
+      setTimeout(() => {
+        socket.emit('server-request-statistics');
+
+        setTimeout(() =>{ dataRecorder.commit(); recordSessionActive = false }, 10*1000)
+      }, 60* 1000)
+    } else {
+      ack('record session already in progress')
+    }
   })
 
+  // Players push ping data to the server
   socket.on('save-statistics', (data) => {
-    dataRecorder.push('fakeID', data)
-    dataRecorder.commit()
-  })
+    dataRecorder.push(`${socket.id}`, data)
+  });
 });

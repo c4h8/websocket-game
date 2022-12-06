@@ -405,12 +405,19 @@ const measureRTT = () => {
   })
 }
 
+socket.on('server-request-statistics', () => {
+  const data = statCache.get();
+  socket.emit('save-statistics', data);
+  statCache.reset();
+});
+
 const saveSnapshot = () => {
   const data = statCache.get();
   socket.emit('save-statistics', data);
   statCache.reset();
 }
 
+const startStatRecording = () => socket.emit('start-stat-recording', ack => console.log(ack));
 
 // Add event listener for keydown event
 // When user presses key (WASD) down:
@@ -439,6 +446,9 @@ window.addEventListener('keydown', ({ key }) => {
       break;
     case 'o':
       saveSnapshot();
+      break;
+    case 'l':
+      startStatRecording();
       break;
     default:
       break;
