@@ -12,6 +12,7 @@ class Player {
     this.radius = 15;
     this.score = 0;
     this.name = name;
+    this.hasPowerUp = false;
   }
 
   draw(c) {

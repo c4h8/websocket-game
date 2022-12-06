@@ -59,25 +59,20 @@ const updatePowerUp = (player) => {
 
   io.emit('remove-powerup');
 
-  player.velocity.x *= 2;
-  player.velocity.y *= 2;
+  player.hasPowerUp = true;
 
   setTimeout(function() {
+    player.hasPowerUp = false;
     const newPowerUpGridPosition = getRandomEmptyGridPosition();
     powerUp = new PowerUp({ gridPosition: newPowerUpGridPosition });
     map[newPowerUpGridPosition.y][newPowerUpGridPosition.x] = 3;
     io.emit('add-powerup', newPowerUpGridPosition);
-    player.velocity.x /= 2;
-    player.velocity.y /= 2;
     io.emit('update', {
       playerList: players,
       collisions: [],
-      powerUpId: player.id,
       updatedCoins: []
     });
   }, 5000);
-
-  return player.id;
 }
 
 const playerTouchesElement = (player, element) => {
@@ -89,11 +84,10 @@ const playerTouchesElement = (player, element) => {
 
 const updateLoop = () => {
   let collisions = [];
-  let powerUpId = null;
   let updatedCoins = [];
   players.forEach((player) => {
     if (powerUp && playerTouchesElement(player, powerUp)) {
-      powerUpId = updatePowerUp(player);
+      updatePowerUp(player);
     }
     coins.forEach((coin) => {
       if (playerTouchesElement(player, coin)) {
@@ -111,12 +105,13 @@ const updateLoop = () => {
     players.forEach((anotherPlayer) => {
       if (player !== anotherPlayer
         && !(collisions.includes(player.id) && collisions.includes(anotherPlayer.id))
+        && !player.hasPowerUp && !anotherPlayer.hasPowerUp
         && playerCollidesWithAnotherPlayer(player, anotherPlayer)) {
           collisions = [player.id, ...collisions];
         }
     })
   })
-  io.emit('update', { playerList: players, collisions, powerUpId, updatedCoins });
+  io.emit('update', { playerList: players, collisions, updatedCoins });
   setTimeout(function() {
     updateLoop();
   }, 1000/60);

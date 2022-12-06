@@ -95,7 +95,7 @@ socket.on('add-player', player => {
   players = [newPlayer, ...players];
 });
 
-socket.on('update', ({ playerList, collisions, powerUpId, updatedCoins }) => {
+socket.on('update', ({ playerList, collisions, updatedCoins }) => {
   playerList.forEach(player => {
     const playerToUpdate = players.find((p) => p.id === player.id);
 
@@ -119,25 +119,15 @@ socket.on('update', ({ playerList, collisions, powerUpId, updatedCoins }) => {
     }
   })
 
-  if (localPlayer && collisions.includes(localPlayer.id)) {
+  if (localPlayer) {
     const localPlayerToUpdate = playerList.find((p) => p.id === localPlayer.id);
-    localPlayer.velocity.x = localPlayerToUpdate.velocity.x;
-    localPlayer.velocity.y = localPlayerToUpdate.velocity.y;
-    localPlayer.position.x += localPlayer.velocity.x;
-    localPlayer.position.y += localPlayer.velocity.y;
-    collisionDetected = true;
-  }
-
-  if (localPlayer && powerUpId === localPlayer.id) {
-    const localPlayerToUpdate = playerList.find((p) => p.id === localPlayer.id);
-    if(velocity === 5) {
-      velocity = 10;
+    localPlayer.hasPowerUp = localPlayerToUpdate.hasPowerUp;
+    if(collisions.includes(localPlayer.id)) {
       localPlayer.velocity.x = localPlayerToUpdate.velocity.x;
       localPlayer.velocity.y = localPlayerToUpdate.velocity.y;
-    } else {
-      velocity = 5;
-      localPlayer.velocity.x = localPlayerToUpdate.velocity.x;
-      localPlayer.velocity.y = localPlayerToUpdate.velocity.y;
+      localPlayer.position.x += localPlayer.velocity.x;
+      localPlayer.position.y += localPlayer.velocity.y;
+      collisionDetected = true;
     }
   }
 
@@ -285,12 +275,6 @@ function gameLoop(localPlayer) {
       localPlayer.velocity.x = 0;
       localPlayer.velocity.y = 0;
     }
-    players.forEach(player => {
-      if (playerCollidesWithBoundary({ player, boundary })) {
-        player.velocity.x = 0;
-        player.velocity.y = 0;
-      }
-    })
   });
   
   // Draw the players on the screen
@@ -328,12 +312,6 @@ function spectate() {
 
   boundaries.forEach((boundary) => {
     boundary.draw(c);
-    players.forEach(player => {
-      if (playerCollidesWithBoundary({ player, boundary })) {
-        player.velocity.x = 0;
-        player.velocity.y = 0;
-      }
-    })
   });
   
   players.forEach((p) => p.draw(c));

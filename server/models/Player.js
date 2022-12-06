@@ -15,7 +15,8 @@ class Player {
     this.score = 0;
     this.startingPosition = startingPosition;
     this.name = `Player${number}`;
-    this.radius = 15;
+    this.radius = 18;
+    this.hasPowerUp = false;
 
     number++;
   }
