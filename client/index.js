@@ -170,7 +170,6 @@ socket.on('add-powerup', (newPowerUpGridPosition) => {
 });
 
 socket.on('winner-found', (player) => {
-  console.log(`${player.name} win!`);
   winner = player;
   coins = [];
   powerUp = null;
@@ -407,7 +406,6 @@ const startStatRecording = () => {
 };
 
 const startRound = () => {
-  console.log("HERE");
   socket.emit('send-start-round');
 }
 

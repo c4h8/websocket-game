@@ -74,7 +74,9 @@ const endRound = () => {
   powerUp = null;
   map = initialMap.map(a => a.slice());
   setTimeout(function() {
-    startRound();
+    if (roundEnded) {
+      startRound();
+    }
   }, 5000);
 };
 
@@ -191,7 +193,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send-start-round', () => {
-    startRound();
+    if (roundEnded) {
+      startRound();
+    }
   });
 
   // One of the clients has disconnected
