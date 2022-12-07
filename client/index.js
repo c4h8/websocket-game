@@ -194,12 +194,12 @@ const drawWinningText = () => {
     c.font = "100px Arial";
     c.fillStyle = "red";
     if (localPlayer && winner.id === localPlayer.id) {
-      c.fillText(`You win!`, 380, 220);
+      c.fillText(`You win!`, canvas.width / 2 - 185, canvas.height / 2);
     } else {
-      c.fillText(`${winner.name} win!`, 380, 220);
+      c.fillText(`${winner.name} win!`, canvas.width / 2 - 280, canvas.height / 2);
     }
     c.font = "30px Arial";
-    c.fillText(`New round starting in ${timeToNewRound}`, 380, 300);
+    c.fillText(`New round starting in ${timeToNewRound}`, canvas.width / 2 - 155, canvas.height / 2 + 50);
   }
 }
 
