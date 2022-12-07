@@ -59,9 +59,11 @@ const updatePowerUp = (player) => {
   io.emit('remove-powerup');
 
   player.hasPowerUp = true;
+  player.color = 'blue';
 
   setTimeout(function() {
     player.hasPowerUp = false;
+    player.color = 'red';
     const newPowerUpGridPosition = getRandomEmptyGridPosition();
     powerUp = new PowerUp({ gridPosition: newPowerUpGridPosition });
     map[newPowerUpGridPosition.y][newPowerUpGridPosition.x] = 3;

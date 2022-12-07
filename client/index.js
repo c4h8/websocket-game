@@ -122,7 +122,7 @@ socket.on('update', ({ playerList, collisions, updatedCoins }) => {
 
   if (localPlayer) {
     const localPlayerToUpdate = playerList.find((p) => p.id === localPlayer.id);
-    localPlayer.hasPowerUp = localPlayerToUpdate.hasPowerUp;
+    localPlayer.color = localPlayerToUpdate.color;
     if(collisions.includes(localPlayer.id)) {
       localPlayer.velocity.x = localPlayerToUpdate.velocity.x;
       localPlayer.velocity.y = localPlayerToUpdate.velocity.y;
@@ -340,7 +340,7 @@ const measureRTT = () => {
     const t2 = performance.now();
     const rtt = t2- t;
     statCache.push({c: rtt, s: serverTimestamp });
-    console.log(res);
+    // console.log(res);
     console.log("rtt: ", rtt);
     console.log("connection: ", socket.io?.engine?.transport?.name);
   })

@@ -17,6 +17,7 @@ class Player {
     this.name = `Player${number}`;
     this.radius = 18;
     this.hasPowerUp = false;
+    this.color = 'red'
 
     number++;
   }
