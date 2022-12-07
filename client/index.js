@@ -35,6 +35,11 @@ let disconnected = false;
 
 let collisionDetected = false;
 
+let winner = null;
+
+let timeToNewRound = 0;
+let intervalId = null;
+
 // Creates the local player and the map, and starts the game loop
 socket.on('create-game', ({ player, map }) => {
   canvas.width = Boundary.width * map[0].length;
@@ -54,6 +59,15 @@ socket.on('create-game', ({ player, map }) => {
   powerUp = createMap(map, boundaries, coins);
 
   gameLoop(localPlayer);
+});
+
+socket.on('start-round', ({ newCoins, newPowerUp }) => {
+  coins = newCoins.map(c => new Coin({ gridPosition: c.gridPosition }));
+  powerUp = new PowerUp({
+    gridPosition: newPowerUp.gridPosition
+  });
+  winner = null;
+  clearInterval(intervalId);
 });
 
 // Creates the map, and starts the spectate loop
@@ -107,14 +121,14 @@ socket.on('update', ({ playerList, collisions, updatedCoins }) => {
         playerToUpdate.velocity.x = player.velocity.x;
         playerToUpdate.velocity.y = player.velocity.y;
 
-        if (player.score > playerToUpdate.score) {
+        if (player.score !== playerToUpdate.score) {
           playerToUpdate.score = player.score;
           const scoreElement = document.getElementById(playerToUpdate.name);
           scoreElement.innerHTML = `${playerToUpdate.name} score: ${playerToUpdate.score}`;
         }
     }
 
-    if (localPlayer && player.id === localPlayer.id && player.score > localPlayer.score) {
+    if (localPlayer && player.id === localPlayer.id && player.score !== localPlayer.score) {
       localPlayer.score = player.score;
       myScoreElement.innerHTML = `My score: ${localPlayer.score}`;
     }
@@ -155,6 +169,18 @@ socket.on('add-powerup', (newPowerUpGridPosition) => {
   });
 });
 
+socket.on('winner-found', (player) => {
+  console.log(`${player.name} win!`);
+  winner = player;
+  coins = [];
+  powerUp = null;
+
+  timeToNewRound = 5;
+  intervalId = setInterval(function() {
+    --timeToNewRound;
+  }, 1000)
+});
+
 // Removes the players and their scores from the screen
 socket.on("disconnect", () => {
   players.forEach(player => document.getElementById(player.name).remove());
@@ -163,6 +189,20 @@ socket.on("disconnect", () => {
   headerElement.innerHTML = 'Disconnected';
   headerElement.style.color = 'white';
 });
+
+const drawWinningText = () => {
+  if (winner !== null) {
+    c.font = "100px Arial";
+    c.fillStyle = "red";
+    if (localPlayer && winner.id === localPlayer.id) {
+      c.fillText(`You win!`, 380, 220);
+    } else {
+      c.fillText(`${winner.name} win!`, 380, 220);
+    }
+    c.font = "30px Arial";
+    c.fillText(`New round starting in ${timeToNewRound}`, 380, 300);
+  }
+}
 
 // The main game loop which is looped fps times a second
 function gameLoop(localPlayer) {
@@ -295,6 +335,8 @@ function gameLoop(localPlayer) {
     id: localPlayer.id
   });
 
+  drawWinningText();
+
   collisionDetected = false;
 
   if (!disconnected) {
@@ -323,6 +365,8 @@ function spectate() {
   });
   
   players.forEach((p) => p.draw(c));
+
+  drawWinningText();
 
   setTimeout(() => {
     requestAnimationFrame(spectate);
@@ -362,6 +406,11 @@ const startStatRecording = () => {
   localStorage.getItem('isAdmin') && socket.emit('start-stat-recording', ack => console.log(ack))
 };
 
+const startRound = () => {
+  console.log("HERE");
+  socket.emit('send-start-round');
+}
+
 // Add event listener for keydown event
 // When user presses key (WASD) down:
 // 1. The value of lastKey is updated
@@ -389,6 +438,9 @@ window.addEventListener('keydown', ({ key }) => {
       break;
     case 'l':
       startStatRecording();
+      break;
+    case '0':
+      startRound();
       break;
     default:
       break;

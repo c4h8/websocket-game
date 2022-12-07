@@ -9,7 +9,7 @@ const Coin = require('./models/Coin');
 
 const {
   startingPositionsArray,
-  map,
+  initialMap,
   playerCollidesWithAnotherPlayer,
   getRandomEmptyGridPosition,
 } = require('./utils');
@@ -35,20 +35,48 @@ http.listen(port, () => {
   console.log('Server is running on port ', port);
 })
 
+let map = initialMap.map(a => a.slice());
+
+const scoreLimit = 10;
+let roundEnded = true;
 let players = [];
-let coins = [
-  new Coin({ gridPosition: { x: 5, y: 4 } }),
-  new Coin({ gridPosition: { x: 14, y: 3 } }),
-  new Coin({ gridPosition: { x: 17, y: 8 } }),
-];
-let powerUp = new PowerUp({ gridPosition: { x: 9, y: 5 } });
+let coins = [];
+let powerUp = null;
 
 const initializeMap = () => {
   coins.forEach((c) => map[c.gridPosition.y][c.gridPosition.x] = 2);
-  map[powerUp.gridPosition.y][powerUp.gridPosition.x] = 3;
+  if (powerUp !== null) {
+    map[powerUp.gridPosition.y][powerUp.gridPosition.x] = 3;
+  }
 }
 
 initializeMap();
+
+const startRound = () => {
+  players.forEach((p) => {
+    p.score = 0;
+  });
+  coins = [
+    new Coin({ gridPosition: getRandomEmptyGridPosition(map) }),
+    new Coin({ gridPosition: getRandomEmptyGridPosition(map) }),
+    new Coin({ gridPosition: getRandomEmptyGridPosition(map) }),
+  ];
+  powerUp = new PowerUp({ gridPosition: getRandomEmptyGridPosition(map) });
+  initializeMap();
+
+  roundEnded = false;
+
+  io.emit('start-round', { newCoins: coins, newPowerUp: powerUp });
+};
+
+const endRound = () => {
+  coins = [];
+  powerUp = null;
+  map = initialMap.map(a => a.slice());
+  setTimeout(function() {
+    startRound();
+  }, 5000);
+};
 
 let startingPositions = startingPositionsArray;
 
@@ -64,10 +92,12 @@ const updatePowerUp = (player) => {
   setTimeout(function() {
     player.hasPowerUp = false;
     player.color = 'red';
-    const newPowerUpGridPosition = getRandomEmptyGridPosition();
-    powerUp = new PowerUp({ gridPosition: newPowerUpGridPosition });
-    map[newPowerUpGridPosition.y][newPowerUpGridPosition.x] = 3;
-    io.emit('add-powerup', newPowerUpGridPosition);
+    if (!roundEnded) {
+      const newPowerUpGridPosition = getRandomEmptyGridPosition(map);
+      powerUp = new PowerUp({ gridPosition: newPowerUpGridPosition });
+      map[newPowerUpGridPosition.y][newPowerUpGridPosition.x] = 3;
+      io.emit('add-powerup', newPowerUpGridPosition);
+    }
     io.emit('update', {
       playerList: players,
       collisions: [],
@@ -87,6 +117,11 @@ const updateLoop = () => {
   let collisions = [];
   let updatedCoins = [];
   players.forEach((player) => {
+    if (player.score >= scoreLimit && !roundEnded) {
+      roundEnded = true;
+      endRound();
+      io.emit('winner-found', player);
+    }
     if (powerUp && playerTouchesElement(player, powerUp)) {
       updatePowerUp(player);
     }
@@ -97,7 +132,7 @@ const updateLoop = () => {
 
         player.score += 1;
 
-        const newCoinGridPosition = getRandomEmptyGridPosition();
+        const newCoinGridPosition = getRandomEmptyGridPosition(map);
         coins = [...coins, new Coin({ gridPosition: newCoinGridPosition })]
         map[newCoinGridPosition.y][newCoinGridPosition.x] = 2;
         updatedCoins = coins;
@@ -153,6 +188,10 @@ io.on('connection', (socket) => {
       playerToUpdate.position = player.position;
       playerToUpdate.velocity = player.velocity;
     }
+  });
+
+  socket.on('send-start-round', () => {
+    startRound();
   });
 
   // One of the clients has disconnected

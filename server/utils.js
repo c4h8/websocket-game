@@ -17,7 +17,7 @@ const startingPositionsArray = [
   { x: 13, y: 7 },
 ];
 
-const map = [
+const initialMap = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
@@ -61,7 +61,7 @@ function playerCollidesWithAnotherPlayer(
   return false;
 }
 
-const getRandomEmptyGridPosition = () => {
+const getRandomEmptyGridPosition = (map) => {
   const emptyPositions = map.map(
     (row, rowIndex) => row.map((number, column) => ({ x: column, y: rowIndex, number })),
   )
@@ -73,4 +73,4 @@ const getRandomEmptyGridPosition = () => {
   return emptyPositions[randomEmptyPositionIndex]
 }
 
-module.exports = { startingPositionsArray, map, playerCollidesWithAnotherPlayer, getRandomEmptyGridPosition };
+module.exports = { startingPositionsArray, initialMap, playerCollidesWithAnotherPlayer, getRandomEmptyGridPosition };
