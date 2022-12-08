@@ -33,6 +33,13 @@ let players = [];
 
 let disconnected = false;
 
+let collisionDetected = false;
+
+let winner = null;
+
+let timeToNewRound = 0;
+let intervalId = null;
+
 // Creates the local player and the map, and starts the game loop
 socket.on('create-game', ({ player, map }) => {
   canvas.width = Boundary.width * map[0].length;
@@ -52,6 +59,15 @@ socket.on('create-game', ({ player, map }) => {
   powerUp = createMap(map, boundaries, coins);
 
   gameLoop(localPlayer);
+});
+
+socket.on('start-round', ({ newCoins, newPowerUp }) => {
+  coins = newCoins.map(c => new Coin({ gridPosition: c.gridPosition }));
+  powerUp = new PowerUp({
+    gridPosition: newPowerUp.gridPosition
+  });
+  winner = null;
+  clearInterval(intervalId);
 });
 
 // Creates the map, and starts the spectate loop
@@ -94,37 +110,44 @@ socket.on('add-player', player => {
   players = [newPlayer, ...players];
 });
 
-// Updates the position and velocity of the opponent
-socket.on('update-player-position', player => {
-  const anotherPlayer = players.find((p) => p.id === player.id);
+socket.on('update', ({ playerList, collisions, updatedCoins }) => {
+  playerList.forEach(player => {
+    const playerToUpdate = players.find((p) => p.id === player.id);
 
-  if (anotherPlayer) {
-    anotherPlayer.position.x = player.position.x;
-    anotherPlayer.position.y = player.position.y;
+    if (playerToUpdate && (localPlayer === null || player.id !== localPlayer.id)) {
+        playerToUpdate.position.x = player.position.x;
+        playerToUpdate.position.y = player.position.y;
+    
+        playerToUpdate.velocity.x = player.velocity.x;
+        playerToUpdate.velocity.y = player.velocity.y;
 
-    anotherPlayer.velocity.x = player.velocity.x;
-    anotherPlayer.velocity.y = player.velocity.y;
+        if (player.score !== playerToUpdate.score) {
+          playerToUpdate.score = player.score;
+          const scoreElement = document.getElementById(playerToUpdate.name);
+          scoreElement.innerHTML = `${playerToUpdate.name} score: ${playerToUpdate.score}`;
+        }
+    }
+
+    if (localPlayer && player.id === localPlayer.id && player.score !== localPlayer.score) {
+      localPlayer.score = player.score;
+      myScoreElement.innerHTML = `My score: ${localPlayer.score}`;
+    }
+  })
+
+  if (localPlayer) {
+    const localPlayerToUpdate = playerList.find((p) => p.id === localPlayer.id);
+    localPlayer.color = localPlayerToUpdate.color;
+    if(collisions.includes(localPlayer.id)) {
+      localPlayer.velocity.x = localPlayerToUpdate.velocity.x;
+      localPlayer.velocity.y = localPlayerToUpdate.velocity.y;
+      localPlayer.position.x += localPlayer.velocity.x;
+      localPlayer.position.y += localPlayer.velocity.y;
+      collisionDetected = true;
+    }
   }
-});
 
-// Removes the collected coin from the map and adds a new coin to the map
-// Updates the score of the player who collected the coin
-socket.on('update-player-score-and-map', ({ player, removedCoin, newCoinGridPosition }) => {
-  coins = coins.filter((c) =>
-    c.gridPosition.x !== removedCoin.gridPosition.x || c.gridPosition.y !== removedCoin.gridPosition.y
-  );
-  coins = [...coins, new Coin({ gridPosition: {
-    x: newCoinGridPosition.x,
-    y: newCoinGridPosition.y,
-  }})]
-  const anotherPlayer = players.find((p) => p.id === player.id);
-  if (localPlayer && player.id === localPlayer.id) {
-    localPlayer.score = player.score;
-    myScoreElement.innerHTML = `My score: ${localPlayer.score}`;
-  } else if (anotherPlayer) {
-    anotherPlayer.score = player.score;
-    const scoreElement = document.getElementById(anotherPlayer.name);
-    scoreElement.innerHTML = `${anotherPlayer.name} score: ${anotherPlayer.score}`;
+  if (updatedCoins.length > 0) {
+    coins = updatedCoins.map(c => new Coin({ gridPosition: c.gridPosition }));
   }
 });
 
@@ -135,7 +158,7 @@ socket.on('delete-player', player => {
 });
 
 // Removes a powerup from the map
-socket.on('remove-powerup', (newPowerUpGridPosition) => {
+socket.on('remove-powerup', () => {
   powerUp = null;
 });
 
@@ -144,6 +167,19 @@ socket.on('add-powerup', (newPowerUpGridPosition) => {
   powerUp = new PowerUp({
     gridPosition: newPowerUpGridPosition
   });
+});
+
+socket.on('end-round', (player) => {
+  winner = player;
+  coins = [];
+  powerUp = null;
+
+  if (winner !== null) {
+    timeToNewRound = 5;
+    intervalId = setInterval(function() {
+      --timeToNewRound;
+    }, 1000)
+  }
 });
 
 // Removes the players and their scores from the screen
@@ -155,6 +191,20 @@ socket.on("disconnect", () => {
   headerElement.style.color = 'white';
 });
 
+const drawWinningText = () => {
+  if (winner !== null) {
+    c.font = "100px Arial";
+    c.fillStyle = "red";
+    if (localPlayer && winner.id === localPlayer.id) {
+      c.fillText(`You win!`, canvas.width / 2, canvas.height / 2);
+    } else {
+      c.fillText(`${winner.name} win!`, canvas.width / 2, canvas.height / 2);
+    }
+    c.font = "30px Arial";
+    c.fillText(`New round starting in ${timeToNewRound}`, canvas.width / 2, canvas.height / 2 + 50);
+  }
+}
+
 // The main game loop which is looped fps times a second
 function gameLoop(localPlayer) {
   // Clear the canvas
@@ -164,7 +214,6 @@ function gameLoop(localPlayer) {
   // 1. User has pressed a new key, and
   // 2. Changing the direction does not break the rules of the game
   if (keys.w.pressed && lastKey === 'w') {
-    const velocityBeforeUpdate = localPlayer.velocity.y;
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
       if (playerCollidesWithBoundary({
@@ -184,15 +233,7 @@ function gameLoop(localPlayer) {
         localPlayer.velocity.y = -velocity;
       }
     }
-    if (localPlayer.velocity.y !== velocityBeforeUpdate) {
-      socket.emit('send-update-player-position', {
-        position: localPlayer.position,
-        velocity: localPlayer.velocity,
-        id: localPlayer.id
-      });
-    }
   } else if (keys.a.pressed && lastKey === 'a') {
-    const velocityBeforeUpdate = localPlayer.velocity.x;
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
       if (playerCollidesWithBoundary({
@@ -212,15 +253,7 @@ function gameLoop(localPlayer) {
         localPlayer.velocity.x = -velocity;
       }
     }
-    if (localPlayer.velocity.x !== velocityBeforeUpdate) {
-      socket.emit('send-update-player-position', {
-        position: localPlayer.position,
-        velocity: localPlayer.velocity,
-        id: localPlayer.id
-      });
-    }
   } else if (keys.s.pressed && lastKey === 's') {
-    const velocityBeforeUpdate = localPlayer.velocity.y;
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
       if (playerCollidesWithBoundary({
@@ -240,15 +273,7 @@ function gameLoop(localPlayer) {
         localPlayer.velocity.y = velocity;
       }
     }
-    if (localPlayer.velocity.y !== velocityBeforeUpdate) {
-      socket.emit('send-update-player-position', {
-        position: localPlayer.position,
-        velocity: localPlayer.velocity,
-        id: localPlayer.id
-      });
-    }
   } else if (keys.d.pressed && lastKey === 'd') {
-    const velocityBeforeUpdate = localPlayer.velocity.x;
     for (let i = 0; i < boundaries.length; i++) {
       const boundary = boundaries[i];
       if (playerCollidesWithBoundary({
@@ -268,13 +293,6 @@ function gameLoop(localPlayer) {
         localPlayer.velocity.x = velocity;
       }
     }
-    if (localPlayer.velocity.x !== velocityBeforeUpdate) {
-      socket.emit('send-update-player-position', {
-        position: localPlayer.position,
-        velocity: localPlayer.velocity,
-        id: localPlayer.id
-      });
-    }
   }
 
   // Render the coins on the screen
@@ -284,54 +302,11 @@ function gameLoop(localPlayer) {
   for (let i = coins.length - 1; i >= 0; i--) {
     const coin = coins[i];
     coin.draw(c);
-
-    if (Math.hypot(
-      coin.position.x - localPlayer.position.x,
-      coin.position.y - localPlayer.position.y,
-    ) < coin.radius + localPlayer.radius
-    ) {
-      socket.emit('send-update-player-score', { gridPosition: {
-        x: coin.gridPosition.x,
-        y: coin.gridPosition.y
-      }});
-      coins.splice(i, 1);
-    }
   }
 
   // Render the powerup on the screen
-  // If powerup is collected:
-  // 1. Double the velocity of the local player
-  // 2. Send a message to the server
-  // 3. Remove the collected powerup from the screen
   if(powerUp) {
     powerUp.draw(c);
-
-    if (Math.hypot(
-      powerUp.position.x - localPlayer.position.x,
-      powerUp.position.y - localPlayer.position.y,
-    ) < powerUp.radius + localPlayer.radius
-    ) {
-      velocity = 10;
-      localPlayer.velocity.x *= 2;
-      localPlayer.velocity.y *= 2;
-      socket.emit('send-update-powerup', powerUp);
-      powerUp = null;
-      socket.emit('send-update-player-position', {
-        position: localPlayer.position,
-        velocity: localPlayer.velocity,
-        id: localPlayer.id
-      });
-      setTimeout(function() {
-        velocity = 5;
-        localPlayer.velocity.x /= 2;
-        localPlayer.velocity.y /= 2;
-        socket.emit('send-update-player-position', {
-          position: localPlayer.position,
-          velocity: localPlayer.velocity,
-          id: localPlayer.id
-        });
-      }, 5000);
-    }
   }
 
   // Render the boundaries on the screen
@@ -342,17 +317,28 @@ function gameLoop(localPlayer) {
       localPlayer.velocity.x = 0;
       localPlayer.velocity.y = 0;
     }
-    players.forEach(player => {
-      if (playerCollidesWithBoundary({ player, boundary })) {
-        player.velocity.x = 0;
-        player.velocity.y = 0;
-      }
-    })
   });
   
-  // Update the positions of the players and draw them on the screen
-  players.forEach((p) => p.update(c));
-  localPlayer.update(c);
+  // Draw the players on the screen
+  players.forEach((p) => {
+    p.draw(c);
+  });
+
+  if (!collisionDetected) {
+    localPlayer.update(c);
+  } else {
+    localPlayer.draw(c);
+  }
+
+  socket.emit('send-update-player', {
+    position: localPlayer.position,
+    velocity: localPlayer.velocity,
+    id: localPlayer.id
+  });
+
+  drawWinningText();
+
+  collisionDetected = false;
 
   if (!disconnected) {
     setTimeout(() => {
@@ -371,17 +357,17 @@ function spectate() {
     coin.draw(c);
   }
 
+  if(powerUp) {
+    powerUp.draw(c);
+  }
+
   boundaries.forEach((boundary) => {
     boundary.draw(c);
-    players.forEach(player => {
-      if (playerCollidesWithBoundary({ player, boundary })) {
-        player.velocity.x = 0;
-        player.velocity.y = 0;
-      }
-    })
   });
   
-  players.forEach((p) => p.update(c));
+  players.forEach((p) => p.draw(c));
+
+  drawWinningText();
 
   setTimeout(() => {
     requestAnimationFrame(spectate);
@@ -399,7 +385,7 @@ const measureRTT = () => {
     const t2 = performance.now();
     const rtt = t2- t;
     statCache.push({c: rtt, s: serverTimestamp });
-    console.log(res);
+    // console.log(res);
     console.log("rtt: ", rtt);
     console.log("connection: ", socket.io?.engine?.transport?.name);
   })
@@ -417,6 +403,14 @@ const pingInterval = setInterval(measureRTT, 1000);
 const startStatRecording = () => {
   localStorage.getItem('isAdmin') && socket.emit('start-stat-recording', ack => console.log(ack))
 };
+
+const startRound = () => {
+  socket.emit('send-start-round');
+}
+
+const endRound = () => {
+  socket.emit('send-end-round');
+}
 
 // Add event listener for keydown event
 // When user presses key (WASD) down:
@@ -445,6 +439,12 @@ window.addEventListener('keydown', ({ key }) => {
       break;
     case 'l':
       startStatRecording();
+      break;
+    case '!':
+      startRound();
+      break;
+    case '?':
+      endRound();
       break;
     default:
       break;

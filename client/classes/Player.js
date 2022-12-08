@@ -7,6 +7,7 @@ class Player {
       y: Boundary.height * startingPosition.y + Boundary.height / 2,
     };
     this.velocity = { x: 0, y: 0 };
+    this.hasPowerUp = false;
     this.color = color ?? 'gray';
     this.id = id;
     this.radius = 15;

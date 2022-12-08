@@ -1,14 +1,18 @@
 
-var express = require('express')
+var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 const renderChart = require('./stats/normalize')
 
 const Player = require('./models/Player');
+const PowerUp = require('./models/PowerUp');
+const Coin = require('./models/Coin');
+
 const {
   startingPositionsArray,
-  map,
-  getRandomEmptyGridPosition
+  initialMap,
+  playerCollidesWithAnotherPlayer,
+  getRandomEmptyGridPosition,
 } = require('./utils');
 
 const dataRecorder = new (require('./dataRecorder'))()
@@ -38,13 +42,132 @@ http.listen(port, () => {
   console.log('Server is running on port ', port);
 })
 
+let map = initialMap.map(a => a.slice());
+
+const scoreLimit = 10;
+let roundEnded = true;
 let players = [];
+let coins = [];
+let powerUp = null;
+
+const initializeMap = () => {
+  coins.forEach((c) => map[c.gridPosition.y][c.gridPosition.x] = 2);
+  if (powerUp !== null) {
+    map[powerUp.gridPosition.y][powerUp.gridPosition.x] = 3;
+  }
+}
+
+initializeMap();
+
+const startRound = () => {
+  players.forEach((p) => {
+    p.score = 0;
+  });
+  coins = [
+    new Coin({ gridPosition: getRandomEmptyGridPosition(map) }),
+    new Coin({ gridPosition: getRandomEmptyGridPosition(map) }),
+    new Coin({ gridPosition: getRandomEmptyGridPosition(map) }),
+  ];
+  powerUp = new PowerUp({ gridPosition: getRandomEmptyGridPosition(map) });
+  initializeMap();
+
+  roundEnded = false;
+
+  io.emit('start-round', { newCoins: coins, newPowerUp: powerUp });
+};
+
+const endRound = () => {
+  roundEnded = true;
+  coins = [];
+  powerUp = null;
+  map = initialMap.map(a => a.slice());
+};
+
 let startingPositions = startingPositionsArray;
+
+const updatePowerUp = (player) => {
+  map[powerUp.gridPosition.y][powerUp.gridPosition.x] = 0;
+  powerUp = null;
+
+  io.emit('remove-powerup');
+
+  player.hasPowerUp = true;
+  player.color = 'blue';
+
+  setTimeout(function() {
+    player.hasPowerUp = false;
+    player.color = 'red';
+    if (!roundEnded) {
+      const newPowerUpGridPosition = getRandomEmptyGridPosition(map);
+      powerUp = new PowerUp({ gridPosition: newPowerUpGridPosition });
+      map[newPowerUpGridPosition.y][newPowerUpGridPosition.x] = 3;
+      io.emit('add-powerup', newPowerUpGridPosition);
+    }
+    io.emit('update', {
+      playerList: players,
+      collisions: [],
+      updatedCoins: []
+    });
+  }, 5000);
+}
+
+const playerTouchesElement = (player, element) => {
+  return Math.hypot(
+    element.position.x - player.position.x,
+    element.position.y - player.position.y,
+  ) < element.radius + player.radius
+}
+
+const updateLoop = () => {
+  let collisions = [];
+  let updatedCoins = [];
+  players.forEach((player) => {
+    if (player.score >= scoreLimit && !roundEnded) {
+      endRound();
+      io.emit('end-round', player);
+      setTimeout(function() {
+        if (roundEnded) {
+          startRound();
+        }
+      }, 5000);
+    }
+    if (powerUp && playerTouchesElement(player, powerUp)) {
+      updatePowerUp(player);
+    }
+    coins.forEach((coin) => {
+      if (playerTouchesElement(player, coin)) {
+        map[coin.gridPosition.y][coin.gridPosition.x] = 0;
+        coins = coins.filter(c => c !== coin);
+
+        player.score += 1;
+
+        const newCoinGridPosition = getRandomEmptyGridPosition(map);
+        coins = [...coins, new Coin({ gridPosition: newCoinGridPosition })]
+        map[newCoinGridPosition.y][newCoinGridPosition.x] = 2;
+        updatedCoins = coins;
+      }
+    });
+    players.forEach((anotherPlayer) => {
+      if (player !== anotherPlayer
+        && !(collisions.includes(player.id) && collisions.includes(anotherPlayer.id))
+        && !player.hasPowerUp && !anotherPlayer.hasPowerUp
+        && playerCollidesWithAnotherPlayer(player, anotherPlayer)) {
+          collisions = [player.id, ...collisions];
+        }
+    })
+  })
+  io.emit('update', { playerList: players, collisions, updatedCoins });
+  setTimeout(function() {
+    updateLoop();
+  }, 1000/60);
+};
+
+updateLoop();
 
 io.on('connection', (socket) => {
   console.log('CLIENT CONNECTED');
 
-  if (players.length < 10) {
+  if (players.length < 2) {
     const thisPlayer = new Player({
       startingPosition: startingPositions[0],
       id: socket.id,
@@ -68,50 +191,24 @@ io.on('connection', (socket) => {
 
 
   // One of the clients sends their position and velocity
-  // This information is broadcasted to all other clients
-  socket.on('send-update-player-position', (player) => {
-    socket.broadcast.emit('update-player-position', player);
-    const somePlayer = players.find((p) => p.id === socket.id);
-    if (somePlayer) {
-      somePlayer.position = player.position;
-      somePlayer.velocity = player.velocity;
+  socket.on('send-update-player', (player) => {
+    const playerToUpdate = players.find((p) => p.id === socket.id);
+    if (playerToUpdate) {
+      playerToUpdate.position = player.position;
+      playerToUpdate.velocity = player.velocity;
     }
   });
 
-
-  // One of the clients has collected a powerup
-  // Powerup is removed from the map
-  // New powerup position is emitted to all clients after 5 seconds
-  socket.on('send-update-powerup', (powerUp) => {
-    if (map[powerUp.gridPosition.y][powerUp.gridPosition.x] === 3) {
-      map[powerUp.gridPosition.y][powerUp.gridPosition.x] = 0;
-
-      io.emit('remove-powerup');
-
-      setTimeout(function() {
-        const newPowerUpPosition = getRandomEmptyGridPosition();
-        map[newPowerUpPosition.y][newPowerUpPosition.x] = 3;
-        io.emit('add-powerup', newPowerUpPosition);
-      }, 5000);
+  socket.on('send-start-round', () => {
+    if (roundEnded) {
+      startRound();
     }
   });
 
-
-  // One of the clients has collected a coin
-  // The score of the client is increased by one
-  // New coin position is emitted to all clients
-  socket.on('send-update-player-score', (removedCoin) => {
-    if (map[removedCoin.gridPosition.y][removedCoin.gridPosition.x] === 2) {
-      const newCoinGridPosition = getRandomEmptyGridPosition();
-
-      map[removedCoin.gridPosition.y][removedCoin.gridPosition.x] = 0;
-
-      const player = players.find((p) => p.id === socket.id);
-      player.score += 1;
-
-      map[newCoinGridPosition.y][newCoinGridPosition.x] = 2;
-
-      io.emit('update-player-score-and-map', { player, removedCoin, newCoinGridPosition });
+  socket.on('send-end-round', () => {
+    if (!roundEnded) {
+      endRound();
+      io.emit('end-round', null);
     }
   });
 
