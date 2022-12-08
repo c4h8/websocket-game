@@ -13,6 +13,7 @@ class Player {
     this.radius = 15;
     this.score = 0;
     this.name = name;
+    this.updated = false;
   }
 
   draw(c) {
@@ -42,11 +43,14 @@ class Player {
     }
   }
 
-  update(c) {
-
-    this.draw(c);
+  update() {
     this.position.x += this.velocity.x;
     this.position.y += this.velocity.y;
+  }
+
+  drawAndupdate(c) {
+    this.update();
+    this.draw(c);
   }
 }
 
