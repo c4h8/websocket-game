@@ -169,15 +169,17 @@ socket.on('add-powerup', (newPowerUpGridPosition) => {
   });
 });
 
-socket.on('winner-found', (player) => {
+socket.on('end-round', (player) => {
   winner = player;
   coins = [];
   powerUp = null;
 
-  timeToNewRound = 5;
-  intervalId = setInterval(function() {
-    --timeToNewRound;
-  }, 1000)
+  if (winner !== null) {
+    timeToNewRound = 5;
+    intervalId = setInterval(function() {
+      --timeToNewRound;
+    }, 1000)
+  }
 });
 
 // Removes the players and their scores from the screen
@@ -409,6 +411,10 @@ const startRound = () => {
   socket.emit('send-start-round');
 }
 
+const endRound = () => {
+  socket.emit('send-end-round');
+}
+
 // Add event listener for keydown event
 // When user presses key (WASD) down:
 // 1. The value of lastKey is updated
@@ -437,8 +443,11 @@ window.addEventListener('keydown', ({ key }) => {
     case 'l':
       startStatRecording();
       break;
-    case '0':
+    case '!':
       startRound();
+      break;
+    case '?':
+      endRound();
       break;
     default:
       break;

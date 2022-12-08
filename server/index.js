@@ -70,14 +70,10 @@ const startRound = () => {
 };
 
 const endRound = () => {
+  roundEnded = true;
   coins = [];
   powerUp = null;
   map = initialMap.map(a => a.slice());
-  setTimeout(function() {
-    if (roundEnded) {
-      startRound();
-    }
-  }, 5000);
 };
 
 let startingPositions = startingPositionsArray;
@@ -120,9 +116,11 @@ const updateLoop = () => {
   let updatedCoins = [];
   players.forEach((player) => {
     if (player.score >= scoreLimit && !roundEnded) {
-      roundEnded = true;
       endRound();
-      io.emit('winner-found', player);
+      io.emit('end-round', player);
+      setTimeout(function() {
+          startRound();
+      }, 5000);
     }
     if (powerUp && playerTouchesElement(player, powerUp)) {
       updatePowerUp(player);
@@ -195,6 +193,13 @@ io.on('connection', (socket) => {
   socket.on('send-start-round', () => {
     if (roundEnded) {
       startRound();
+    }
+  });
+
+  socket.on('send-end-round', () => {
+    if (!roundEnded) {
+      endRound();
+      io.emit('end-round', null);
     }
   });
 
