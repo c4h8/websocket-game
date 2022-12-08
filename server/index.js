@@ -119,7 +119,9 @@ const updateLoop = () => {
       endRound();
       io.emit('end-round', player);
       setTimeout(function() {
+        if (roundEnded) {
           startRound();
+        }
       }, 5000);
     }
     if (powerUp && playerTouchesElement(player, powerUp)) {
