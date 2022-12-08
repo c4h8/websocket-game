@@ -201,7 +201,7 @@ const drawWinningText = () => {
       c.fillText(`${winner.name} win!`, canvas.width / 2, canvas.height / 2);
     }
     c.font = "30px Arial";
-    c.fillText(`New round starting in ${timeToNewRound}`, canvas.width / 2, canvas.height / 2 + 50);
+    c.fillText(`New round starting in ${timeToNewRound}`, canvas.width / 2, canvas.height / 2 + 75);
   }
 }
 
