@@ -115,21 +115,17 @@ socket.on('update', ({ playerList, collisions, updatedCoins }) => {
     const playerToUpdate = players.find((p) => p.id === player.id);
 
     if (playerToUpdate && (localPlayer === null || player.id !== localPlayer.id)) {
-      if (player.velocity.x !== playerToUpdate.velocity.x || player.velocity.y !== playerToUpdate.velocity.y) {
         playerToUpdate.position.x = player.position.x;
         playerToUpdate.position.y = player.position.y;
     
         playerToUpdate.velocity.x = player.velocity.x;
         playerToUpdate.velocity.y = player.velocity.y;
 
-        playerToUpdate.updated = true;
-      }
-
-      if (player.score !== playerToUpdate.score) {
-        playerToUpdate.score = player.score;
-        const scoreElement = document.getElementById(playerToUpdate.name);
-        scoreElement.innerHTML = `${playerToUpdate.name} score: ${playerToUpdate.score}`;
-      }
+        if (player.score !== playerToUpdate.score) {
+          playerToUpdate.score = player.score;
+          const scoreElement = document.getElementById(playerToUpdate.name);
+          scoreElement.innerHTML = `${playerToUpdate.name} score: ${playerToUpdate.score}`;
+        }
     }
 
     if (localPlayer && player.id === localPlayer.id && player.score !== localPlayer.score) {
@@ -325,17 +321,11 @@ function gameLoop(localPlayer) {
   
   // Draw the players on the screen
   players.forEach((p) => {
-    if (!p.updated) {
-      p.drawAndupdate(c);
-    } else {
-      p.draw(c);
-      p.updated = false;
-    }
-    console.log(p.position);
+    p.draw(c);
   });
 
   if (!collisionDetected) {
-    localPlayer.drawAndupdate(c);
+    localPlayer.update(c);
   } else {
     localPlayer.draw(c);
   }
