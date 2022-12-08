@@ -411,11 +411,8 @@ socket.on('server-request-statistics', () => {
   statCache.reset();
 });
 
-const saveSnapshot = () => {
-  const data = statCache.get();
-  socket.emit('save-statistics', data);
-  statCache.reset();
-}
+
+const pingInterval = setInterval(measureRTT, 1000);
 
 const startStatRecording = () => {
   localStorage.getItem('isAdmin') && socket.emit('start-stat-recording', ack => console.log(ack))
