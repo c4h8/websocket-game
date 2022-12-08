@@ -10,32 +10,34 @@ const normalize = (data) => {
   playerIDs = Object.keys(data);
 
   const timestamps = playerIDs.reduce(
-    (acc, id) => [...acc, data[id].map(o => o.s)],
+    (acc, id) => [...acc, ...(data[id].map(o => o.s))],
     []
   );
 
-  const minTimeStamp = Math.min(timestamps);
+  const minTimeStamp = Math.min(...timestamps);
+  console.log('minTimeStamp', minTimeStamp)
 
   const dataSets = playerIDs.map((id) => 
     ({ 
       data: data[id].map(o => ({ x: o.s - minTimeStamp, y: o.c }))
     })
   );
+
+  return dataSets;
 }
 
 const renderChart = async (slug) => {
-  try {
+
     const path = `${pathRoot}${slug}.json`;
+   
+    const jsonData = await fs.readFile(path).then(res => JSON.parse(res));
+    const parsedData = normalize(jsonData)
+ console.log(parsedData)
+    return renderToHTML(parsedData)
 
-    const jsonData = await fs.readFile(path);
-
-    return renderToHTML(jsonData)
-  } catch {
-    return 'Data not found'
-  }
 }
 
-const renderToHTML = (jsonData) => `
+const renderToHTML = (rawdata) => `
   <!DOCTYPE html>
   <html>
     <head>
@@ -44,7 +46,7 @@ const renderToHTML = (jsonData) => `
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Title</title>
       <!--Chart.js JS CDN--> 
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script> 
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
     </head>
     <body>
       <div>
@@ -52,12 +54,13 @@ const renderToHTML = (jsonData) => `
       </div>
 
       <script>
-        const jsonData = ${data}
-        const datasets = JSON.parse(jsonData)
+        const jsonData = '${JSON.stringify(rawdata)}';
+        const d = JSON.parse(jsonData);
+        console.log('datasets', d)
         const ctx = document.getElementById('asd').getContext('2d');
         const myChart = new Chart(ctx, {
-          type: "line",
-          data: datasets
+          type: "scatter",
+          data: { datasets: d }
         });
       </script>
     </body>

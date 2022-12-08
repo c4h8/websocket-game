@@ -2,6 +2,7 @@
 var express = require('express')
 var app = express();
 var http = require('http').Server(app);
+const renderChart = require('./stats/normalize')
 
 const Player = require('./models/Player');
 const {
@@ -25,6 +26,12 @@ const io = require('socket.io')(http, {
     origin: originList,
   },
 });
+// render charts
+app.get('/stats/:slug/', async (req, res) => {
+  const slug = req.params.slug;
+  const htmlString = await renderChart(slug)
+  res.send(htmlString)
+})
 app.use(express.static('build'));
 
 http.listen(port, () => {
