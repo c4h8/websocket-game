@@ -50,6 +50,7 @@ socket.on('create-game', ({ player, map }) => {
     color: 'red',
     id: player.id,
     name: player.name,
+    isLocalPlayer: true
   });
 
   headerElement.innerHTML = `You are the ${localPlayer.color} circle`;
@@ -96,6 +97,7 @@ socket.on('add-player', player => {
     startingPosition: player.startingPosition,
     id: player.id,
     name: player.name,
+    isLocalPlayer: false,
   });
 
   newPlayer.velocity = player.velocity;
@@ -115,17 +117,18 @@ socket.on('update', ({ playerList, collisions, updatedCoins }) => {
     const playerToUpdate = players.find((p) => p.id === player.id);
 
     if (playerToUpdate && (localPlayer === null || player.id !== localPlayer.id)) {
-        playerToUpdate.position.x = player.position.x;
-        playerToUpdate.position.y = player.position.y;
-    
-        playerToUpdate.velocity.x = player.velocity.x;
-        playerToUpdate.velocity.y = player.velocity.y;
+      playerToUpdate.color = player.color === 'red' ? 'gray' : 'blue';
+      playerToUpdate.position.x = player.position.x;
+      playerToUpdate.position.y = player.position.y;
+  
+      playerToUpdate.velocity.x = player.velocity.x;
+      playerToUpdate.velocity.y = player.velocity.y;
 
-        if (player.score !== playerToUpdate.score) {
-          playerToUpdate.score = player.score;
-          const scoreElement = document.getElementById(playerToUpdate.name);
-          scoreElement.innerHTML = `${playerToUpdate.name} score: ${playerToUpdate.score}`;
-        }
+      if (player.score !== playerToUpdate.score) {
+        playerToUpdate.score = player.score;
+        const scoreElement = document.getElementById(playerToUpdate.name);
+        scoreElement.innerHTML = `${playerToUpdate.name} score: ${playerToUpdate.score}`;
+      }
     }
 
     if (localPlayer && player.id === localPlayer.id && player.score !== localPlayer.score) {
@@ -207,6 +210,11 @@ const drawWinningText = () => {
 
 // The main game loop which is looped fps times a second
 function gameLoop(localPlayer) {
+  if (!disconnected) {
+    setTimeout(() => {
+      requestAnimationFrame(() => gameLoop(localPlayer));
+    }, 1000 / fps);
+  }
   // Clear the canvas
   c.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -339,12 +347,6 @@ function gameLoop(localPlayer) {
   drawWinningText();
 
   collisionDetected = false;
-
-  if (!disconnected) {
-    setTimeout(() => {
-      requestAnimationFrame(() => gameLoop(localPlayer));
-    }, 1000 / fps);
-  }
 }
 
 
