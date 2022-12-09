@@ -70,8 +70,8 @@ class Player {
   }
 
   velocityIsLargerThanZero() {
-    return this.velocity.x > 0
-    && this.velocity.y > 0;
+    return Math.abs(this.velocity.x) > 0
+    || Math.abs(this.velocity.y) > 0;
   }
 
   previousPositionIsSameAsCurrentPosition() {
