@@ -37,6 +37,7 @@ http.listen(port, () => {
 
 let map = initialMap.map(a => a.slice());
 
+const fps = 45;
 const scoreLimit = 10;
 let roundEnded = true;
 let players = [];
@@ -152,7 +153,7 @@ const updateLoop = () => {
   io.emit('update', { playerList: players, collisions, updatedCoins });
   setTimeout(function() {
     updateLoop();
-  }, 1000/60);
+  }, 1000 / fps);
 };
 
 updateLoop();

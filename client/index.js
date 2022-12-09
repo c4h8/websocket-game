@@ -118,8 +118,7 @@ socket.on('update', ({ playerList, collisions, updatedCoins }) => {
 
     if (playerToUpdate && (localPlayer === null || player.id !== localPlayer.id)) {
       playerToUpdate.color = player.color === 'red' ? 'gray' : 'blue';
-      playerToUpdate.position.x = player.position.x;
-      playerToUpdate.position.y = player.position.y;
+      playerToUpdate.updateWithPosition(player.position);
   
       playerToUpdate.velocity.x = player.velocity.x;
       playerToUpdate.velocity.y = player.velocity.y;
@@ -143,8 +142,7 @@ socket.on('update', ({ playerList, collisions, updatedCoins }) => {
     if(collisions.includes(localPlayer.id)) {
       localPlayer.velocity.x = localPlayerToUpdate.velocity.x;
       localPlayer.velocity.y = localPlayerToUpdate.velocity.y;
-      localPlayer.position.x += localPlayer.velocity.x;
-      localPlayer.position.y += localPlayer.velocity.y;
+      localPlayer.update();
       collisionDetected = true;
     }
   }
@@ -329,11 +327,16 @@ function gameLoop(localPlayer) {
   
   // Draw the players on the screen
   players.forEach((p) => {
-    p.draw(c);
+    if (p.previousPositionIsSameAsCurrentPosition() && p.velocityIsLargerThanZero()) {
+      console.log("UPDATING IN THE LOOP")
+      p.updateAndDraw(c);
+    } else {
+      p.draw(c);
+    }
   });
 
   if (!collisionDetected) {
-    localPlayer.update(c);
+    localPlayer.updateAndDraw(c);
   } else {
     localPlayer.draw(c);
   }

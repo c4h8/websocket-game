@@ -6,6 +6,10 @@ class Player {
       x: Boundary.width * startingPosition.x + Boundary.width / 2,
       y: Boundary.height * startingPosition.y + Boundary.height / 2,
     };
+    this.previousPosition = {
+      x: this.position.x,
+      y: this.position.y
+    };
     this.velocity = { x: 0, y: 0 };
     this.hasPowerUp = false;
     this.color = color ?? 'gray';
@@ -43,11 +47,36 @@ class Player {
     }
   }
 
-  update(c) {
-
-    this.draw(c);
+  update() {
+    this.updatePrevious()
     this.position.x += this.velocity.x;
     this.position.y += this.velocity.y;
+  }
+
+  updateWithPosition(newPosition) {
+    this.updatePrevious()
+    this.position.x = newPosition.x;
+    this.position.y = newPosition.y;
+  }
+
+  updatePrevious() {
+    this.previousPosition.x = this.position.x;
+    this.previousPosition.y = this.position.y;
+  }
+
+  updateAndDraw(c) {
+    this.update();
+    this.draw(c);
+  }
+
+  velocityIsLargerThanZero() {
+    return this.velocity.x > 0
+    && this.velocity.y > 0;
+  }
+
+  previousPositionIsSameAsCurrentPosition() {
+    return this.previousPosition.x === this.position.x
+      && this.previousPosition.y === this.position.y;
   }
 }
 
