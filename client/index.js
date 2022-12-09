@@ -327,11 +327,7 @@ function gameLoop(localPlayer) {
   
   // Draw the players on the screen
   players.forEach((p) => {
-    if (p.previousPositionIsSameAsCurrentPosition() && p.velocityIsLargerThanZero()) {
-      p.updateAndDraw(c);
-    } else {
-      p.draw(c);
-    }
+    p.draw(c);
   });
 
   if (!collisionDetected) {
