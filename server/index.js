@@ -2,6 +2,7 @@
 var express = require('express');
 var app = express();
 var http = require('http').Server(app);
+const renderChart = require('./stats/normalize')
 
 const Player = require('./models/Player');
 const PowerUp = require('./models/PowerUp');
@@ -29,6 +30,12 @@ const io = require('socket.io')(http, {
     origin: originList,
   },
 });
+// render charts
+app.get('/stats/:slug/', async (req, res) => {
+  const slug = req.params.slug;
+  const htmlString = await renderChart(slug)
+  res.send(htmlString)
+})
 app.use(express.static('build'));
 
 http.listen(port, () => {
@@ -204,6 +211,11 @@ io.on('connection', (socket) => {
       endRound();
       io.emit('end-round', null);
     }
+    // if record session is active, collect data
+    if (recordSessionActive) {
+      clearTimeout(recordSessionTimeout);
+      endRecordSession();
+    }
   });
 
   // One of the clients has disconnected
@@ -226,20 +238,25 @@ io.on('connection', (socket) => {
     callback(Date.now());
   });
 
+  const endRecordSession = () => {
+    socket.emit('server-request-statistics');
+    setTimeout(() => {
+      dataRecorder.commit();
+      recordSessionActive = false; 
+      recordSessionTimeout = null;
+    }, 10*1000)
+  }
 
   // start recording session.
   let recordSessionActive = false;
+  let recordSessionTimeout = null;
   socket.on('start-stat-recording', (ack) => {
     if(!recordSessionActive) {
       recordSessionActive = true
       console.log('starting recorded session');
       ack('starting recorded session')
 
-      setTimeout(() => {
-        socket.emit('server-request-statistics');
-
-        setTimeout(() =>{ dataRecorder.commit(); recordSessionActive = false }, 10*1000)
-      }, 60* 1000)
+      recordSessionTimeout = setTimeout(endRecordSession, 60* 1000)
     } else {
       ack('record session already in progress')
     }

@@ -385,7 +385,6 @@ const measureRTT = () => {
     const t2 = performance.now();
     const rtt = t2- t;
     statCache.push({c: rtt, s: serverTimestamp });
-    // console.log(res);
     console.log("rtt: ", rtt);
     console.log("connection: ", socket.io?.engine?.transport?.name);
   })
@@ -397,11 +396,8 @@ socket.on('server-request-statistics', () => {
   statCache.reset();
 });
 
-const saveSnapshot = () => {
-  const data = statCache.get();
-  socket.emit('save-statistics', data);
-  statCache.reset();
-}
+
+const pingInterval = setInterval(measureRTT, 1000);
 
 const startStatRecording = () => {
   localStorage.getItem('isAdmin') && socket.emit('start-stat-recording', ack => console.log(ack))
