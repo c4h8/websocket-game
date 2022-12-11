@@ -385,7 +385,6 @@ const measureRTT = () => {
     const t2 = performance.now();
     const rtt = t2- t;
     statCache.push({c: rtt, s: serverTimestamp });
-    // console.log(res);
     console.log("rtt: ", rtt);
     console.log("connection: ", socket.io?.engine?.transport?.name);
   })
