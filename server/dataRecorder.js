@@ -4,15 +4,6 @@ const pathRoot = process.env?.RENDER_EXTERNAL_HOSTNAME
   ? '/var/data/'
   : './data/'
 
-const mockState = ({
-  player1: [
-    {
-      rtt: 3000,
-      ts: '23-23-23'
-    }
-  ]
-});
-
 class StatRecorder {
   state = {}
 
