@@ -1,7 +1,7 @@
 import Boundary from './Boundary';
 
 class Player {
-  constructor({ startingPosition, color, id, name }) {
+  constructor({ startingPosition, color, id, name, isLocalPlayer }) {
     this.position = {
       x: Boundary.width * startingPosition.x + Boundary.width / 2,
       y: Boundary.height * startingPosition.y + Boundary.height / 2,
@@ -13,6 +13,7 @@ class Player {
     this.radius = 15;
     this.score = 0;
     this.name = name;
+    this.isLocalPlayer = isLocalPlayer;
   }
 
   draw(c) {
@@ -21,13 +22,13 @@ class Player {
     c.fillStyle = this.color;
     c.fill();
 
-    if (this.color === 'gray') {
+    if (!this.isLocalPlayer) {
       c.fillStyle = "rgba(255, 255, 255, 0.5)";
       const rectWidth = 60;
-      const rectHeight = 15;
+      const rectHeight = 20;
       const rectX = this.position.x - rectWidth / 2;
-      const rectY = this.position.y - rectHeight * 2.5;
-      c.fillRect(rectX, rectY, rectWidth, 15);
+      const rectY = this.position.y - rectHeight * 2;
+      c.fillRect(rectX, rectY, rectWidth, rectHeight);
       c.font = "14px Arial";
       c.textAlign = "center"; 
       c.textBaseline = "middle";
@@ -42,11 +43,19 @@ class Player {
     }
   }
 
-  update(c) {
-
-    this.draw(c);
+  update() {
     this.position.x += this.velocity.x;
     this.position.y += this.velocity.y;
+  }
+
+  updateWithPosition(newPosition) {
+    this.position.x = newPosition.x;
+    this.position.y = newPosition.y;
+  }
+
+  updateAndDraw(c) {
+    this.update();
+    this.draw(c);
   }
 }
 

@@ -13,4 +13,4 @@ export const keys = {
   },
 };
 
-export const fps = 60;
+export const fps = 45;
