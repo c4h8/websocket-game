@@ -199,7 +199,7 @@ const drawWinningText = () => {
     if (localPlayer && winner.id === localPlayer.id) {
       c.fillText(`You win!`, canvas.width / 2, canvas.height / 2);
     } else {
-      c.fillText(`${winner.name} win!`, canvas.width / 2, canvas.height / 2);
+      c.fillText(`${winner.name} wins!`, canvas.width / 2, canvas.height / 2);
     }
     c.font = "30px Arial";
     c.fillText(`New round starting in ${timeToNewRound}`, canvas.width / 2, canvas.height / 2 + 75);
