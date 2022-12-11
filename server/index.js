@@ -126,6 +126,7 @@ const updateLoop = () => {
     if (player.score >= scoreLimit && !roundEnded) {
       endRound();
       io.emit('end-round', player);
+      endRecordSession();
       setTimeout(function() {
         if (roundEnded) {
           startRound();
@@ -239,12 +240,14 @@ io.on('connection', (socket) => {
   });
 
   const endRecordSession = () => {
-    socket.emit('server-request-statistics');
-    setTimeout(() => {
-      dataRecorder.commit();
-      recordSessionActive = false; 
-      recordSessionTimeout = null;
-    }, 10*1000)
+    if(recordSessionActive) {
+      socket.emit('server-request-statistics');
+      setTimeout(() => {
+        dataRecorder.commit();
+        recordSessionActive = false; 
+        recordSessionTimeout = null;
+      }, 10*1000)
+    }
   }
 
   // start recording session.
