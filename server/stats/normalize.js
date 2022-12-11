@@ -18,7 +18,10 @@ const normalize = (data) => {
   console.log('minTimeStamp', minTimeStamp)
 
   const dataSets = playerIDs.map((id) => 
-    ({ 
+    ({
+      showLine: true,
+      tension: 0.2,
+      // backgroundColor: id, 
       data: data[id].map(o => ({ x: o.s - minTimeStamp, y: o.c }))
     })
   );
@@ -62,6 +65,7 @@ const renderToHTML = (rawdata) => `
           type: "scatter",
           data: { datasets: d }
         });
+        myChart.register(Colors);
       </script>
     </body>
   </html>
