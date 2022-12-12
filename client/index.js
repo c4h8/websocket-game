@@ -196,6 +196,7 @@ const drawWinningText = () => {
   if (winner !== null) {
     c.font = "100px Arial";
     c.fillStyle = "red";
+    c.textAlign = "center";
     if (localPlayer && winner.id === localPlayer.id) {
       c.fillText(`You win!`, canvas.width / 2, canvas.height / 2);
     } else {
