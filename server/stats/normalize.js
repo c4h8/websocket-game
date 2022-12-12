@@ -17,10 +17,11 @@ const normalize = (data) => {
   const minTimeStamp = Math.min(...timestamps);
   console.log('minTimeStamp', minTimeStamp)
 
-  const dataSets = playerIDs.map((id) => 
+  const dataSets = playerIDs.map((id, index) => 
     ({
       showLine: true,
       tension: 0.2,
+      label: `Player ${index}`,
       // backgroundColor: id, 
       data: data[id].map(o => ({ x: o.s - minTimeStamp, y: o.c }))
     })
@@ -35,7 +36,7 @@ const renderChart = async (slug) => {
    
     const jsonData = await fs.readFile(path).then(res => JSON.parse(res));
     const parsedData = normalize(jsonData)
- console.log(parsedData)
+    console.log(parsedData)
     return renderToHTML(parsedData)
 
 }
@@ -63,9 +64,14 @@ const renderToHTML = (rawdata) => `
         const ctx = document.getElementById('asd').getContext('2d');
         const myChart = new Chart(ctx, {
           type: "scatter",
-          data: { datasets: d }
+          data: { datasets: d },
+          options: {
+            scales: {
+              y: { title: {text: "rtt (ms)", display: true }},
+              x: { title: {text: "time (ms)", display: true }}
+            }
+          }
         });
-        myChart.register(Colors);
       </script>
     </body>
   </html>
