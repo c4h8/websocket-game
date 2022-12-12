@@ -126,7 +126,7 @@ const updateLoop = () => {
     if (player.score >= scoreLimit && !roundEnded) {
       endRound();
       io.emit('end-round', player);
-      // endRecordSession();
+      endRecordSession();
       setTimeout(function() {
         if (roundEnded) {
           startRound();
