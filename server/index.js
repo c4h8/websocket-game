@@ -164,6 +164,19 @@ const updateLoop = () => {
   }, 1000 / fps);
 };
 
+let recordSessionActive = false;
+let recordSessionTimeout = null;
+const endRecordSession = () => {
+  if(recordSessionActive) {
+    io.emit('server-request-statistics');
+    setTimeout(() => {
+      dataRecorder.commit();
+      recordSessionActive = false; 
+      recordSessionTimeout = null;
+    }, 10*1000)
+  }
+}
+
 updateLoop();
 
 io.on('connection', (socket) => {
@@ -239,20 +252,7 @@ io.on('connection', (socket) => {
     callback(Date.now());
   });
 
-  const endRecordSession = () => {
-    if(recordSessionActive) {
-      socket.emit('server-request-statistics');
-      setTimeout(() => {
-        dataRecorder.commit();
-        recordSessionActive = false; 
-        recordSessionTimeout = null;
-      }, 10*1000)
-    }
-  }
-
   // start recording session.
-  let recordSessionActive = false;
-  let recordSessionTimeout = null;
   socket.on('start-stat-recording', (ack) => {
     if(!recordSessionActive) {
       recordSessionActive = true
