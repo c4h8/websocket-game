@@ -402,7 +402,7 @@ socket.on('server-request-statistics', () => {
 const pingInterval = setInterval(measureRTT, 1000);
 
 const startStatRecording = () => {
-  localStorage.getItem('isAdmin') && socket.emit('start-stat-recording', ack => console.log(ack))
+  socket.emit('start-stat-recording', ack => console.log(ack))
 };
 
 const startRound = () => {
