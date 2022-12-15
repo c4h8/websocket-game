@@ -182,7 +182,7 @@ updateLoop();
 io.on('connection', (socket) => {
   console.log('CLIENT CONNECTED');
 
-  if (players.length < 10) {
+  if (players.length < 100) {
     const thisPlayer = new Player({
       startingPosition: startingPositions[0],
       id: socket.id,
