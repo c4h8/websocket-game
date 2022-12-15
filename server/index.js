@@ -127,7 +127,7 @@ const updateLoop = () => {
     if (player.score >= scoreLimit && !roundEnded) {
       endRound();
       io.emit('end-round', player);
-      endRecordSession();
+      //endRecordSession();
       setTimeout(function() {
         if (roundEnded) {
           startRound();
@@ -228,10 +228,10 @@ io.on('connection', (socket) => {
       io.emit('end-round', null);
     }
     // if record session is active, collect data
-    if (recordSessionActive) {
-      clearTimeout(recordSessionTimeout);
-      endRecordSession();
-    }
+    // if (recordSessionActive) {
+    //   clearTimeout(recordSessionTimeout);
+    //   endRecordSession();
+    // }
   });
 
   // One of the clients has disconnected
