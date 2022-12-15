@@ -5,16 +5,16 @@ class StatCache {
   }
 
   reset() {
-    this.cache = []
+    this.cache = [];
   }
 
   // add data point
   push(data) {
-    this.cache.push(data)
+    this.cache.push(data);
   }
 
   get() {
-    return [...(this.cache)]
+    return [...(this.cache)];
   }
 }
 

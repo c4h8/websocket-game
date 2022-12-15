@@ -173,6 +173,7 @@ const endRecordSession = () => {
       dataRecorder.commit();
       recordSessionActive = false; 
       recordSessionTimeout = null;
+      dataRecorder.reset();
     }, 10*1000)
   }
 }

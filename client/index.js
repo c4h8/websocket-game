@@ -402,6 +402,7 @@ socket.on('server-request-statistics', () => {
 const pingInterval = setInterval(measureRTT, 1000);
 
 const startStatRecording = () => {
+  statCache.reset();
   socket.emit('start-stat-recording', ack => console.log(ack))
 };
 
