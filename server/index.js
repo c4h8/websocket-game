@@ -256,7 +256,7 @@ io.on('connection', (socket) => {
   // start recording session.
   socket.on('start-stat-recording', (ack) => {
     if(!recordSessionActive) {
-      socket.emit('clear-cache');
+      io.emit('clear-cache');
       recordSessionActive = true;
       console.log('starting recorded session');
       ack('starting recorded session');
