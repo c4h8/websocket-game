@@ -166,11 +166,11 @@ const updateLoop = () => {
 
 let recordSessionActive = false;
 let recordSessionTimeout = null;
-const endRecordSession = () => {
+const endRecordSession = async () => {
   if(recordSessionActive) {
     io.emit('server-request-statistics');
-    setTimeout(() => {
-      dataRecorder.commit();
+    setTimeout(async () => {
+      await dataRecorder.commit();
       recordSessionActive = false; 
       recordSessionTimeout = null;
       dataRecorder.reset();
