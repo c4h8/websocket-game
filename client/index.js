@@ -53,6 +53,8 @@ socket.on('create-game', ({ player, map }) => {
     isLocalPlayer: true
   });
 
+  console.log("Socket id:", player.id);
+
   headerElement.innerHTML = `You are the ${localPlayer.color} circle`;
   headerElement.style.color = localPlayer.color;
   myScoreElement.style.color = localPlayer.color;
@@ -386,8 +388,6 @@ const measureRTT = () => {
     const t2 = performance.now();
     const rtt = t2- t;
     statCache.push({c: rtt, s: serverTimestamp });
-    console.log("rtt: ", rtt);
-    console.log("connection: ", socket.io?.engine?.transport?.name);
   })
 }
 
