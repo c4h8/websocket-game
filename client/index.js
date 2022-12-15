@@ -443,6 +443,11 @@ window.addEventListener('keydown', ({ key }) => {
     case '!':
       startRound();
       break;
+    case 'u': 
+      endRound();
+      startRound();
+      startStatRecording();
+      setTimeout(endRound, 60*1000);
     case '?':
       endRound();
       break;

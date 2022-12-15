@@ -1,22 +1,3 @@
-const startingPositionsArray = [
-  { x: 1, y: 1 },
-  { x: 1, y: 9 },
-  { x: 17, y: 1 },
-  { x: 17, y: 9 },
-  { x: 9, y: 1 },
-  { x: 9, y: 9 },
-  { x: 5, y: 5 },
-  { x: 12, y: 5 },
-  { x: 3, y: 3 },
-  { x: 15, y: 3 },
-  { x: 3, y: 7 },
-  { x: 15, y: 7 },
-  { x: 7, y: 3 },
-  { x: 13, y: 3 },
-  { x: 7, y: 7 },
-  { x: 13, y: 7 },
-];
-
 const initialMap = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -30,6 +11,15 @@ const initialMap = [
   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ];
+
+let startingPositionsArray = [];
+for (let i = 0; i < initialMap.length; i++) {
+  for (let j = 0; j < initialMap[0].length; j++) {
+    if (initialMap[i][j] === 0) {
+      startingPositionsArray = [...startingPositionsArray, { x: j, y: i }]
+    }
+  }
+}
 
 function playerCollidesWithAnotherPlayer(
   player,
