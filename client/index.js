@@ -173,6 +173,7 @@ socket.on('add-powerup', (newPowerUpGridPosition) => {
 });
 
 socket.on('end-round', (player) => {
+  console.log('round ended');
   winner = player;
   coins = [];
   powerUp = null;
@@ -443,11 +444,13 @@ window.addEventListener('keydown', ({ key }) => {
     case '!':
       startRound();
       break;
-    case 'u': 
+    case 'u':
+      console.log('starting benchmark');
       endRound();
       startRound();
       startStatRecording();
       setTimeout(endRound, 60*1000);
+      break;
     case '?':
       endRound();
       break;
