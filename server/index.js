@@ -256,11 +256,12 @@ io.on('connection', (socket) => {
   // start recording session.
   socket.on('start-stat-recording', (ack) => {
     if(!recordSessionActive) {
-      recordSessionActive = true
+      socket.emit('clear-cache');
+      recordSessionActive = true;
       console.log('starting recorded session');
-      ack('starting recorded session')
+      ack('starting recorded session');
 
-      recordSessionTimeout = setTimeout(endRecordSession, 60* 1000)
+      recordSessionTimeout = setTimeout(endRecordSession, 60* 1000);
     } else {
       ack('record session already in progress')
     }

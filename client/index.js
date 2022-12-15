@@ -398,11 +398,14 @@ socket.on('server-request-statistics', () => {
   statCache.reset();
 });
 
+socket.on('clear-cache', () => {
+  console.log('clearing cache');
+  statCache.reset();
+});
 
 const pingInterval = setInterval(measureRTT, 1000);
 
 const startStatRecording = () => {
-  statCache.reset();
   socket.emit('start-stat-recording', ack => console.log(ack))
 };
 
