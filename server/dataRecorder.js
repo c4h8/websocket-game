@@ -27,7 +27,7 @@ class StatRecorder {
     const timestamp = `${t.getFullYear()}-${t.getMonth()}-${t.getDate()}-T-${t.getHours()}-${t.getSeconds()}`
     console.log('FS path root', pathRoot);
 
-    return fs.writeFile(`${pathRoot}${timestamp}-WS.json`, JSON.stringify(this.state))
+    return fs.writeFile(`${pathRoot}${timestamp}-polling.json`, JSON.stringify(this.state))
       .then(() => {
         console.log(`Saved File ${timestamp}.json`);
         this.reset()
