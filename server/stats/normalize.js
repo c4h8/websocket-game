@@ -1,5 +1,6 @@
 
 const fs = require('fs/promises');
+const stats = require("stats-lite");
 
 const pathRoot = process.env?.RENDER_EXTERNAL_HOSTNAME
   ? '/var/data/'
@@ -30,15 +31,22 @@ const normalize = (data) => {
   return dataSets;
 }
 
-const renderChart = async (slug) => {
+const flatten = (data) => {
+  playerIDs = Object.keys(data);
 
+  const timestamps = playerIDs.reduce(
+    (acc, id) => [...acc, ...(data[id].map(o => o.c))],
+    []
+  );
+}
+
+const renderChart = async (slug) => {
     const path = `${pathRoot}${slug}.json`;
    
     const jsonData = await fs.readFile(path).then(res => JSON.parse(res));
     const parsedData = normalize(jsonData)
     console.log(parsedData)
     return renderToHTML(parsedData)
-
 }
 
 const renderToHTML = (rawdata) => `
@@ -55,6 +63,8 @@ const renderToHTML = (rawdata) => `
     <body>
       <div>
         <canvas id="asd"></canvas>
+        <div id="avg">Mean: ${stats.mean(flatten(rawdata))}</div>
+        <div id="avg">Var: ${stats.var(flatten(rawdata))}</div>
       </div>
 
       <script>
