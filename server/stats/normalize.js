@@ -39,15 +39,24 @@ const flatten = (data) => {
   );
 }
 
+const calculateVariance = (data) => {
+  playerIDs = Object.keys(data);
+
+  const variances = playerIDs.reduce(
+    (acc, id) => [...acc, stats.variance(data[id].map(o => o.c))],
+    []
+  );
+
+  return stats.mean(variances);
+}
+
 const renderChart = async (slug) => {
     const path = `${pathRoot}${slug}.json`;
   
     const jsonData = await fs.readFile(path).then(res => JSON.parse(res));
-    const parsedData = normalize(jsonData)
+    const parsedData = normalize(jsonData);
 
-
-
-    return renderToHTML(parsedData, jsonData)
+    return renderToHTML(parsedData, jsonData);
 }
 
 const renderToHTML = (rawdata, d) => `
@@ -65,7 +74,7 @@ const renderToHTML = (rawdata, d) => `
       <div>
         <canvas id="asd"></canvas>
         <div id="avg">Mean: ${stats.mean(flatten(d))}</div>
-        <div id="avg">Var: ${stats.variance(flatten(d))}</div>
+        <div id="avg">Var: ${calculateVariance(d)}</div>
       </div>
 
       <script>
