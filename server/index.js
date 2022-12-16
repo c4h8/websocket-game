@@ -28,8 +28,7 @@ console.log('cors', port)
 const io = require('socket.io')(http, {
   cors: {
     origin: originList,
-  },
-  transports: ["polling"]
+  }
 });
 // render charts
 app.get('/stats/:slug/', async (req, res) => {
