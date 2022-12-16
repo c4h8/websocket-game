@@ -44,10 +44,13 @@ const renderChart = async (slug) => {
   
     const jsonData = await fs.readFile(path).then(res => JSON.parse(res));
     const parsedData = normalize(jsonData)
-    return renderToHTML(parsedData)
+
+
+
+    return renderToHTML(parsedData, jsonData)
 }
 
-const renderToHTML = (rawdata) => `
+const renderToHTML = (rawdata, d) => `
   <!DOCTYPE html>
   <html>
     <head>
@@ -61,8 +64,8 @@ const renderToHTML = (rawdata) => `
     <body>
       <div>
         <canvas id="asd"></canvas>
-        <div id="avg">Mean: ${stats.mean(flatten(rawdata))}</div>
-        <div id="avg">Var: ${stats.var(flatten(rawdata))}</div>
+        <div id="avg">Mean: ${stats.mean(flatten(d))}</div>
+        <div id="avg">Var: ${stats.variance(flatten(d))}</div>
       </div>
 
       <script>
