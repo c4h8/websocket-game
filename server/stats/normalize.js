@@ -16,7 +16,6 @@ const normalize = (data) => {
   );
 
   const minTimeStamp = Math.min(...timestamps);
-  console.log('minTimeStamp', minTimeStamp)
 
   const dataSets = playerIDs.map((id, index) => 
     ({
@@ -34,7 +33,7 @@ const normalize = (data) => {
 const flatten = (data) => {
   playerIDs = Object.keys(data);
 
-  const timestamps = playerIDs.reduce(
+  return playerIDs.reduce(
     (acc, id) => [...acc, ...(data[id].map(o => o.c))],
     []
   );
@@ -42,10 +41,9 @@ const flatten = (data) => {
 
 const renderChart = async (slug) => {
     const path = `${pathRoot}${slug}.json`;
-   
+  
     const jsonData = await fs.readFile(path).then(res => JSON.parse(res));
     const parsedData = normalize(jsonData)
-    console.log(parsedData)
     return renderToHTML(parsedData)
 }
 
